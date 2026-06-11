@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import DoctorLayout from './components/All/layout';
-import ReceptionLayout from './components/All/layout';
+import DoctorLayout from './components/All/Layout';
+import ReceptionLayout from './components/All/Layout';
 import DoctorDashboard from './pages/Doctor/Dashboard';
 import ReceptionDashboard from './pages/Reception/Dashboard';
 import PatientDetail from './pages/Doctor/PatientDetail';

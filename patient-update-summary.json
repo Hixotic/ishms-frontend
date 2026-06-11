@@ -1,0 +1,70 @@
+{
+  "patientsProcessed": 5,
+  "results": [
+    {
+      "patientId": 10,
+      "status": "ok",
+      "vital": {
+        "patientId": 10,
+        "heartRate": 103,
+        "oxygenLevel": 98,
+        "temperature": 36.8,
+        "systolicPressure": 117,
+        "diastolicPressure": 76,
+        "respirationRate": 18
+      }
+    },
+    {
+      "patientId": 11,
+      "status": "ok",
+      "vital": {
+        "patientId": 11,
+        "heartRate": 76,
+        "oxygenLevel": 97,
+        "temperature": 36.3,
+        "systolicPressure": 109,
+        "diastolicPressure": 85,
+        "respirationRate": 15
+      }
+    },
+    {
+      "patientId": 12,
+      "status": "ok",
+      "vital": {
+        "patientId": 12,
+        "heartRate": 74,
+        "oxygenLevel": 92,
+        "temperature": 37,
+        "systolicPressure": 140,
+        "diastolicPressure": 72,
+        "respirationRate": 15
+      }
+    },
+    {
+      "patientId": 13,
+      "status": "ok",
+      "vital": {
+        "patientId": 13,
+        "heartRate": 103,
+        "oxygenLevel": 96,
+        "temperature": 36.6,
+        "systolicPressure": 104,
+        "diastolicPressure": 70,
+        "respirationRate": 22
+      }
+    },
+    {
+      "patientId": 14,
+      "status": "ok",
+      "vital": {
+        "patientId": 14,
+        "heartRate": 73,
+        "oxygenLevel": 96,
+        "temperature": 37.4,
+        "systolicPressure": 124,
+        "diastolicPressure": 76,
+        "respirationRate": 22
+      }
+    }
+  ]
+}

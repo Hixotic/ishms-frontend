@@ -1,0 +1,115 @@
+:root {
+  /* BACKGROUNDS */
+  --bg-page: #f6f8fb;
+  --bg-surface: #ffffff;
+  --bg-panel: #ffffff;
+
+  /* TEXT */
+  --text-primary: #1f2937;
+  --text-muted: #6b7280;
+  --text-faint: #9ca3af;
+
+  /* BORDERS */
+  --border: #e5e7eb;
+
+  /* BRAND */
+  --accent: #1d4ed8;
+  --accent-bg: #eaf2ff;
+
+  /* STATUS COLORS */
+  --critical: #dc2626;
+  --critical-bg: #fee2e2;
+  --critical-border: #fecaca;
+
+  --warning: #f59e0b;
+  --warning-bg: #fef3c7;
+  --warning-border: #fde68a;
+
+  --stable: #16a34a;
+  --stable-bg: #dcfce7;
+  --stable-border: #bbf7d0;
+
+  /* AI */
+  --ai: #7c3aed;
+  --ai-bg: #f3e8ff;
+  --ai-border: #e9d5ff;
+}
+
+/* ─── MODERN SLIDER STYLES ─────────────────────────────────── */
+input[type="range"] {
+  width: 100%;
+  height: 6px;
+  border-radius: 5px;
+  background: linear-gradient(to right, var(--accent) 0%, var(--accent) var(--value), var(--border) var(--value), var(--border) 100%);
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+/* Slider thumb - Chrome, Safari, Edge */
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(29, 78, 216, 0.3);
+  transition: all 0.2s ease;
+  border: 2px solid #ffffff;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  width: 22px;
+  height: 22px;
+  box-shadow: 0 4px 12px rgba(29, 78, 216, 0.5);
+}
+
+input[type="range"]::-webkit-slider-thumb:active {
+  background: #1543c0;
+  box-shadow: 0 6px 16px rgba(29, 78, 216, 0.6);
+}
+
+/* Slider thumb - Firefox */
+input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(29, 78, 216, 0.3);
+  transition: all 0.2s ease;
+  border: 2px solid #ffffff;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+  width: 22px;
+  height: 22px;
+  box-shadow: 0 4px 12px rgba(29, 78, 216, 0.5);
+}
+
+input[type="range"]::-moz-range-thumb:active {
+  background: #1543c0;
+  box-shadow: 0 6px 16px rgba(29, 78, 216, 0.6);
+}
+
+/* Slider track - Firefox */
+input[type="range"]::-moz-range-track {
+  background: transparent;
+  border: none;
+}
+
+input[type="range"]::-moz-range-progress {
+  background: var(--accent);
+  border-radius: 5px;
+  height: 6px;
+}
+
+/* Focus state for accessibility */
+input[type="range"]:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}

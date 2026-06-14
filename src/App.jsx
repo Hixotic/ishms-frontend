@@ -19,6 +19,7 @@ import ReceptionDashboard from "./features/Reception/Dashboard";
 //nurse
 import NurseDashboard from "./features/Nurse/Dashboard";
 import NursePatientDetails from "./features/Nurse/PaitentDetail";
+import NurseLayout from "./features/Nurse/components/navbar";
 
 // Doctor
 import DoctorDashboard from "./features/Doctor/Dashboard";
@@ -114,6 +115,7 @@ function RoleAwareLayout() {
   const role = auth?.user?.role?.toLowerCase();
 
   if (role === "admin") return <AdminLayout />;
+  if (role === "nurse") return <NurseLayout />;
 
   // ReceptionLayout and DoctorLayout must render <Outlet /> inside them.
   const Layout = role === "receptionist" ? ReceptionLayout : DoctorLayout;

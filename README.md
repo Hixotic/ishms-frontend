@@ -1,16 +1,44 @@
-# React + Vite
+# ISHMS Frontend (Integrated Smart Home Management System)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Welcome to the frontend repository for the **ISHMS** application. This project delivers an intuitive, responsive, and real-time user interface designed to interact with the ISHMS core backend ecosystem.
 
-Currently, two official plugins are available:
+## 🚀 About the Project
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+**ISHMS** (Integrated Smart Home Management System) is an intelligent platform designed to streamline, automate, and monitor smart devices, system resource allocations, and real-time environmental data. 
 
-## React Compiler
+### Key Features
+* **Real-time Dashboard:** Live tracking of system statuses, sensor metrics, and connected device nodes.
+* **Device Control Center:** User-friendly controls to trigger automated routines, toggle device states, and customize schedules.
+* **Analytics & Reports:** Detailed graphs and data visualization showing past trends and automated event histories.
+* **Responsive Design:** Optimized for modern desktop monitors, tablets, and mobile devices.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## 🛠️ Built With
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+This frontend application is built using modern web technologies:
+
+* **Framework:** [React.js](https://reactjs.org/) / [Next.js](https://nextjs.org/) / [Vue.js](https://vuejs.org/) *(Keep your framework, delete the rest)*
+* **Styling:** Tailwind CSS / Material UI / styled-components
+* **State Management:** Redux Toolkit / Zustand / Context API
+* **Data Fetching:** Axios / TanStack Query (React Query)
+* **Build Tool:** Vite / Webpack
+
+---
+
+## 🏁 Getting Started
+
+Follow these instructions to set up a local copy of the project and get it running on your machine.
+
+### Prerequisites
+
+Ensure you have the following installed on your machine:
+* **Node.js** (v18.x or higher recommended)
+* **npm** or **yarn** or **pnpm** package manager
+
+### Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone [https://github.com/Hixotic/ishms-frontend.git](https://github.com/Hixotic/ishms-frontend.git)
+   cd ishms-frontend

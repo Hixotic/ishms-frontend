@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthProvider';
-import { SearchContext } from '../../components/All/layout';
+import { SearchContext } from '../../components/All/Layout';
 import PatientDetailsModal from '../../components/Reception/PatientDetailsModal';
 import { 
   User, 
@@ -26,7 +26,7 @@ import { useData } from '../../components/All/IContext';
 import AdmissionWizard from '../../components/Reception/AdmissionWizard';
 import BedManagement from '../../components/Reception/BedManagement';
 import DischargeMonitor from '../../components/Reception/DischargeMonitor';
-import AlertsPanel from '../../components/all/alerts';
+import AlertsPanel from '../../components/All/alerts';
 import ExecutivePage from '../Analysis/ExecutiveDashboard';
 
 // ─── ENHANCED COMPONENTS ──────────────────────────────────────────────

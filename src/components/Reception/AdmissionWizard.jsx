@@ -16,7 +16,7 @@ import {
   Activity
 } from 'lucide-react';
 import { createPatient, getDepartments, getAvailableBedsByDepartment } from '../../api/apiHandler';
-import { SearchContext } from '../All/layout';
+import { SearchContext } from '../All/Layout';
 
 const AdmissionWizard = ({ onComplete }) => {
   const navigate = useNavigate();

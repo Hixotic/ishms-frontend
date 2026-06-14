@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import { dischargePatient } from '../../api/apiHandler';
 import { formatBedId, formatPatientId, HandleDepartmentByBedId } from '../../api/Handler';
-import { SearchContext } from '../All/layout';
+import { SearchContext } from '../All/Layout';
 import { useData } from '../All/IContext';
 
 

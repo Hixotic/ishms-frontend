@@ -192,6 +192,7 @@ const DashboardOverview = ({
   handleDischarge,
   handleView,
   handleQuickAction,
+  loading,
 }) => {
   const searchTerm = useContext(SearchContext)?.searchTerm || "";
   const [selectedPatient, setSelectedPatient] = useState(null);
@@ -218,6 +219,17 @@ const DashboardOverview = ({
     setSelectedPatient(patient);
     setShowPatientModal(true);
   };
+
+  if (loading && patients.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 animate-pulse">
+        <RefreshCw size={40} className="text-blue-600 animate-spin mb-4" />
+        <p className="text-slate-400 font-black uppercase tracking-widest text-xs">
+          Loading Data...
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="animate-in fade-in duration-500">
@@ -394,7 +406,7 @@ const DashboardOverview = ({
   );
 };
 
-// ─── RECEPTION DASHBOARD SHELL ───────────────────────────────────────
+// ─── RECEPTION DASHBOARD SHELL ───────────────────────────────
 
 export default function ReceptionDashboard() {
   const auth = useAuth();
@@ -414,6 +426,13 @@ export default function ReceptionDashboard() {
     isReceptionist,
     userRole,
   } = useData();
+
+  // FIX: Ensure data is fetched on mount
+  useEffect(() => {
+    if (refreshData) {
+      refreshData();
+    }
+  }, []);
 
   const handleAdmit = (patient) => {
     navigate("/admission", { state: { patient } });
@@ -447,6 +466,7 @@ export default function ReceptionDashboard() {
             handleDischarge={handleDischarge}
             handleView={handleView}
             handleQuickAction={handleQuickAction}
+            loading={patientsLoading || alertsLoading}
           />
         );
       case "admission":
@@ -467,6 +487,7 @@ export default function ReceptionDashboard() {
             patients={patients}
             alerts={alerts}
             handleQuickAction={handleQuickAction}
+            loading={patientsLoading || alertsLoading}
           />
         );
     }

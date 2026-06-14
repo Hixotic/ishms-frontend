@@ -551,7 +551,7 @@ export default function BedManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-3 sm:p-4 md:p-6 lg:p-8">
+    <div className="min-h-screen bg-slate-50 p-3 sm:p-4 md:p-6 lg:p-3">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
           {[

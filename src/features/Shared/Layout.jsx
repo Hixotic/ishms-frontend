@@ -194,35 +194,30 @@ export default function MainLayout() {
       >
         {/* LOGO */}
         <div
-          className={`flex items-center justify-between border-b border-slate-100 h-20 ${sidebarOpen ? "px-6" : "px-4"}`}
+          className={`flex items-center ${sidebarOpen ? "justify-between px-6" : "justify-center px-4"} border-b border-slate-100 h-16`}
         >
-          {sidebarOpen ? (
+          {sidebarOpen && (
             <div className="flex flex-col">
-              <span className="text-2xl font-black text-blue-600 tracking-tight leading-none">
+              <span className="text-xl font-black text-blue-600 tracking-tight leading-none">
                 iSHMS
               </span>
-              <span className="text-[10px] font-bold text-slate-400 mt-1 uppercase tracking-[0.2em]">
+              <span className="text-[9px] font-bold text-slate-400 mt-0.5 uppercase tracking-[0.2em]">
                 {role} Portal
               </span>
-            </div>
-          ) : (
-            /* HIDDEN LOGO WHEN CLOSED: Removed the "iS" text as requested */
-            <div className="w-full flex justify-center">
-              <div className="w-1.5 h-1.5 rounded-full bg-blue-600 animate-pulse" />
             </div>
           )}
           {!isMobile && (
             <button
               onClick={toggleSidebar}
-              className="p-2 rounded-xl hover:bg-slate-50 text-slate-400 hover:text-blue-600 transition-all"
+              className="p-1.5 rounded-xl hover:bg-slate-50 text-slate-400 hover:text-blue-600 transition-all"
             >
-              {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+              {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
           )}
         </div>
 
         {/* NAVIGATION */}
-        <nav className="flex-1 overflow-y-auto py-6 px-3 space-y-8 custom-scrollbar">
+        <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-6 custom-scrollbar">
           {sections.map((section) => (
             <div key={section} className="space-y-1">
               {sidebarOpen && (
@@ -276,7 +271,7 @@ export default function MainLayout() {
       {/* MAIN CONTENT AREA */}
       <main className="flex-1 flex flex-col min-w-0 relative">
         {/* HEADER */}
-        <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 md:px-10 sticky top-0 z-30">
+        <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 md:px-10 sticky top-0 z-30">
           <div className="flex items-center gap-4">
             {isMobile && (
               <button
@@ -308,7 +303,7 @@ export default function MainLayout() {
                   setShowDropdown(true);
                 }}
                 onFocus={() => setShowDropdown(true)}
-                className="w-full pl-12 pr-4 py-2.5 bg-slate-100 border-transparent border-2 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-50 rounded-2xl text-sm font-semibold transition-all outline-none"
+                className="w-full pl-12 pr-4 py-2 bg-slate-100 border-transparent border-2 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-50 rounded-2xl text-sm font-semibold transition-all outline-none"
               />
             </div>
 
@@ -372,15 +367,15 @@ export default function MainLayout() {
             <div className="relative">
               <button
                 onClick={toggleNotif}
-                className={`notif-btn w-11 h-11 rounded-xl border flex items-center justify-center transition-all ${
+                className={`notif-btn w-10 h-10 rounded-xl border flex items-center justify-center transition-all ${
                   notifOpen
                     ? "bg-blue-50 border-blue-200 text-blue-600"
                     : "bg-white border-slate-200 text-slate-500 hover:border-blue-300 hover:text-blue-600"
                 }`}
               >
-                <Bell size={20} />
+                <Bell size={18} />
                 {alerts.length > 0 && (
-                  <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full animate-pulse" />
+                  <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 border-2 border-white rounded-full animate-pulse" />
                 )}
               </button>
 
@@ -396,17 +391,41 @@ export default function MainLayout() {
 
                   <div className="max-h-[400px] overflow-y-auto p-2 space-y-1">
                     {alertsLoading ? (
-                      <div className="p-10 text-center space-y-3">
-                        <div className="w-8 h-8 border-4 border-blue-600/20 border-t-blue-600 rounded-full animate-spin mx-auto" />
-                        <p className="text-xs font-bold text-slate-400">
-                          Syncing alerts...
+                      <div className="p-8 text-center">
+                        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+                        <p className="text-xs font-bold text-slate-500">
+                          Loading alerts...
                         </p>
                       </div>
-                    ) : alerts.length === 0 ? (
-                      <div className="p-10 text-center">
-                        <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-3">
-                          <Bell size={20} className="text-slate-300" />
+                    ) : alerts.length > 0 ? (
+                      alerts.map((alert) => (
+                        <div
+                          key={alert.id}
+                          className="p-3 hover:bg-slate-50 rounded-xl transition-colors border border-transparent hover:border-slate-100"
+                        >
+                          <div className="flex gap-3">
+                            <div
+                              className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
+                                alert.priority === "High"
+                                  ? "bg-red-500"
+                                  : alert.priority === "Medium"
+                                    ? "bg-amber-500"
+                                    : "bg-blue-500"
+                              }`}
+                            />
+                            <div className="flex-1">
+                              <p className="text-sm font-bold text-slate-800">
+                                {alert.message}
+                              </p>
+                              <p className="text-[10px] font-medium text-slate-500 mt-1">
+                                {alert.time} • {alert.patientName}
+                              </p>
+                            </div>
+                          </div>
                         </div>
+                      ))
+                    ) : (
+                      <div className="p-8 text-center">
                         <p className="text-sm font-bold text-slate-800">
                           All caught up!
                         </p>
@@ -414,82 +433,36 @@ export default function MainLayout() {
                           No new alerts to show
                         </p>
                       </div>
-                    ) : (
-                      alerts.slice(0, 5).map((alert) => (
-                        <button
-                          key={alert.id || alert.alertId || Math.random()}
-                          onClick={() => {
-                            setNotifOpen(false);
-                            navigate(isDoctor ? "/AlertsPage" : "/alerts");
-                          }}
-                          className="w-full flex gap-4 p-3 hover:bg-slate-50 rounded-xl transition-all text-left group/notif"
-                        >
-                          <div className="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center flex-shrink-0 group-hover/notif:scale-110 transition-transform">
-                            <AlertCircle size={20} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-slate-800 line-clamp-1">
-                              {alert.title || alert.type || "System Alert"}
-                            </p>
-                            <p className="text-xs font-medium text-slate-500 mt-0.5 line-clamp-2 leading-relaxed">
-                              {alert.message || "New notification received"}
-                            </p>
-                            <p className="text-[10px] font-bold text-slate-400 mt-2 flex items-center gap-1.5">
-                              <span className="w-1 h-1 bg-slate-300 rounded-full" />
-                              {alert.createdAt
-                                ? new Date(alert.createdAt).toLocaleTimeString(
-                                    [],
-                                    { hour: "2-digit", minute: "2-digit" },
-                                  )
-                                : "Just now"}
-                            </p>
-                          </div>
-                        </button>
-                      ))
                     )}
                   </div>
-
-                  <button
-                    onClick={() => {
-                      setNotifOpen(false);
-                      navigate(isDoctor ? "/AlertsPage" : "/alerts");
-                    }}
-                    className="w-full p-4 text-center text-xs font-bold text-blue-600 hover:bg-blue-50 border-t border-slate-100 transition-colors"
-                  >
-                    View All Alerts
-                  </button>
                 </div>
               )}
-            </div>
-
-            <div className="hidden sm:flex flex-col items-end mr-2">
-              <span className="text-xs font-bold text-slate-800">
-                {auth.user?.fullName?.split(" ")[0] || "User"}
-              </span>
-              <span className="text-[9px] font-black text-slate-400 uppercase tracking-tighter">
-                {role}
-              </span>
             </div>
           </div>
         </header>
 
         {/* PAGE CONTENT */}
-        {/* CUSTOMIZE SPACING: Adjust p-4, md:p-6 values to change padding around content */}
-        <div className="flex-1 overflow-y-auto p-4 md:p-6">
-          <div className={fullWidth ? "w-full" : "max-w-7xl mx-auto"}>
-            <Outlet context={{ setFullWidth }} />
-          </div>
+        <div className="flex-1 overflow-y-auto px-6 md:px-10 py-4 custom-scrollbar">
+          <SearchContext.Provider
+            value={{
+              searchTerm,
+              setSearchTerm,
+              filteredPatients,
+              patients,
+              patientsLoading,
+              alerts,
+              alertsLoading,
+            }}
+          >
+            <Outlet />
+          </SearchContext.Provider>
         </div>
 
-        {/* MODALS */}
-        {isReceptionist && selectedPatient && (
+        {/* PATIENT DETAILS MODAL */}
+        {showPatientModal && selectedPatient && (
           <PatientDetailsModal
             patient={selectedPatient}
-            isOpen={showPatientModal}
-            onClose={() => {
-              setShowPatientModal(false);
-              setSelectedPatient(null);
-            }}
+            onClose={() => setShowPatientModal(false)}
           />
         )}
       </main>
@@ -518,9 +491,6 @@ function SidebarLink({ to, label, icon, collapsed, isActive }) {
         {icon}
       </span>
       {!collapsed && <span>{label}</span>}
-      {!collapsed && isActive && (
-        <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-600" />
-      )}
     </Link>
   );
 }

@@ -1,154 +1,188 @@
+/* ─── Google Fonts (his admin fonts) ───────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@font-face {
-  font-family: 'Cairo';
-  src: url('/Cairo/static/Cairo-Regular.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Cairo';
-  src: url('/Cairo/static/Cairo-Medium.ttf') format('truetype');
-  font-weight: 500;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Cairo';
-  src: url('/Cairo/static/Cairo-SemiBold.ttf') format('truetype');
-  font-weight: 600;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Cairo';
-  src: url('/Cairo/static/Cairo-Bold.ttf') format('truetype');
-  font-weight: 700;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Cairo';
-  src: url('/Cairo/static/Cairo-ExtraBold.ttf') format('truetype');
-  font-weight: 800;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Cairo';
-  src: url('/Cairo/static/Cairo-Black.ttf') format('truetype');
-  font-weight: 900;
-  font-style: normal;
-}
-
-@font-face {
-  font-family: 'Cairo';
-  src: url('/Cairo/static/Cairo-Light.ttf') format('truetype');
-  font-weight: 300;
-  font-style: normal;
-}
-
+/* ─── Your local Cairo font ─────────────────────────────────────────────────── */
 @font-face {
   font-family: 'Cairo';
   src: url('/Cairo/static/Cairo-ExtraLight.ttf') format('truetype');
   font-weight: 200;
-  font-style: normal;
+}
+@font-face {
+  font-family: 'Cairo';
+  src: url('/Cairo/static/Cairo-Light.ttf') format('truetype');
+  font-weight: 300;
+}
+@font-face {
+  font-family: 'Cairo';
+  src: url('/Cairo/static/Cairo-Regular.ttf') format('truetype');
+  font-weight: 400;
+}
+@font-face {
+  font-family: 'Cairo';
+  src: url('/Cairo/static/Cairo-Medium.ttf') format('truetype');
+  font-weight: 500;
+}
+@font-face {
+  font-family: 'Cairo';
+  src: url('/Cairo/static/Cairo-SemiBold.ttf') format('truetype');
+  font-weight: 600;
+}
+@font-face {
+  font-family: 'Cairo';
+  src: url('/Cairo/static/Cairo-Bold.ttf') format('truetype');
+  font-weight: 700;
+}
+@font-face {
+  font-family: 'Cairo';
+  src: url('/Cairo/static/Cairo-ExtraBold.ttf') format('truetype');
+  font-weight: 800;
+}
+@font-face {
+  font-family: 'Cairo';
+  src: url('/Cairo/static/Cairo-Black.ttf') format('truetype');
+  font-weight: 900;
 }
 
+/* ─── CSS Variables ─────────────────────────────────────────────────────────── */
 :root {
-  --bg-page: #f1f5f9;
-  --bg-sidebar: #ffffff;
-  --bg-card: #ffffff;
+  /* Backgrounds */
+  --bg-page:    #f6f8fb;
   --bg-surface: #ffffff;
-  --border: #e2e8f0;
-  --primary: #0061f2;
+  --bg-panel:   #ffffff;
+  --bg-sidebar: #ffffff;
+  --bg-card:    #ffffff;
+  --color-background-secondary: #f8fafc;
+
+  /* Text */
+  --text-primary: #1f2937;
+  --text-muted:   #6b7280;
+  --text-faint:   #9ca3af;
+  --text-main:    #1e293b;   /* kept for any component that uses it */
+  --text-light:   #64748b;
+
+  /* Borders */
+  --border:       #e5e7eb;
+  --border-light: #f1f5f9;
+
+  /* Brand / Accent */
+  --accent:       #1d4ed8;
+  --accent-bg:    #eaf2ff;
+  --accent-light: #eaf2ff;
+  --primary:      #0061f2;
   --primary-light: #eff6ff;
-  --text-main: #1e293b;
-  --text-muted: #64748b;
-  --text-light: #64748b;
-  --text-faint: #94a3b8;
-  --critical: #dc2626;
-  --critical-bg: #fee2e2;
-  --warning: #f59e0b;
-  --warning-bg: #fef3c7;
-  --stable: #10b981;
-  --stable-bg: #dcfce7;
-  --ai-purple: #8b5cf6;
+
+  /* Status — critical */
+  --critical:        #dc2626;
+  --critical-bg:     #fee2e2;
+  --critical-border: #fecaca;
+
+  /* Status — warning */
+  --warning:        #f59e0b;
+  --warning-bg:     #fef3c7;
+  --warning-border: #fde68a;
+
+  /* Status — stable */
+  --stable:        #16a34a;
+  --stable-bg:     #dcfce7;
+  --stable-border: #bbf7d0;
+
+  /* AI */
+  --ai:        #7c3aed;
+  --ai-bg:     #f3e8ff;
+  --ai-border: #e9d5ff;
+  --ai-purple: #8b5cf6;   /* kept for any component that uses it */
+
+  /* Typography */
   --fonts: 'Cairo';
   --font-weight: 600;
+
+  /* Radii */
   --border-radius-md: 8px;
   --border-radius-lg: 12px;
-  --color-background-secondary: #f8fafc;
 }
 
-* { 
-  box-sizing: border-box; 
-}
-
-body { 
-  margin: 0; 
-  font-family: var(--fonts) !important;
-  font-weight: 500 !important; /* Added bolder weight */
-  line-height: 1.5; /* Better line height */
-  letter-spacing: 0.01em; /* Slight letter spacing */
-  background: var(--bg-page); 
-  color: var(--text-main); 
-}
-
-/* Add subtle shadows and modern touches */
-.card-shadow {
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06);
-}
-
-.hover-shadow:hover {
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.06);
-}
-
-/* Smooth transitions */
-* {
+/* ─── Base reset ────────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  /* Smooth theme transitions */
   transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
-/* Responsive design */
-@media (max-width: 768px) {
-  .sidebar {
-    width: 0px !important;
-    padding: 0 !important;
-  }
-  .sidebar-open {
-    width: 200px !important;
-  }
-  .main-content {
-    padding: 10px 15px !important;
-  }
-  .topbar {
-    padding: 0 15px !important;
-  }
-  .sidebar-mobile-hidden {
-    display: none !important;
-  }
+body {
+  margin: 0;
+  font-family: var(--fonts), sans-serif;
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+  background: var(--bg-page);
+  color: var(--text-main);
 }
 
-/* Force buttons and inputs to use Cairo as well */
+/* Force Cairo on all form elements */
 button, input, select, textarea {
-  font-family: 'Cairo';
+  font-family: 'Cairo', sans-serif;
 }
 
+/* ─── Scrollbar ─────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar         { width: 5px; height: 5px; }
+::-webkit-scrollbar-track   { background: transparent; }
+::-webkit-scrollbar-thumb   { background: #CBD5E1; border-radius: 99px; }
+
+/* ─── Utility shadows ───────────────────────────────────────────────────────── */
+.card-shadow {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+}
+.hover-shadow:hover {
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1), 0 2px 4px rgba(0,0,0,0.06);
+}
+
+/* ─── Responsive sidebar ────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .sidebar              { width: 0 !important; padding: 0 !important; }
+  .sidebar-open         { width: 200px !important; }
+  .main-content         { padding: 10px 15px !important; }
+  .topbar               { padding: 0 15px !important; }
+  .sidebar-mobile-hidden{ display: none !important; }
+}
+
+/* ─── Animations ────────────────────────────────────────────────────────────── */
 @keyframes pulse-red {
-  0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.1); }
-  50% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0.05); }
-  100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+  0%   { box-shadow: 0 0 0 0   rgba(220,38,38,0.10); }
+  50%  { box-shadow: 0 0 0 10px rgba(220,38,38,0.05); }
+  100% { box-shadow: 0 0 0 0   rgba(220,38,38,0.00); }
 }
 
-/* ─── MODERN SLIDER STYLES ─────────────────────────────────── */
+@keyframes criticalPulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(-8px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes fadeUp {
+  from { transform: translateY(8px); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+
+/* ─── Range / Slider ────────────────────────────────────────────────────────── */
 input[type="range"] {
   width: 100%;
   height: 6px;
   border-radius: 5px;
-  background: linear-gradient(to right, var(--accent) 0%, var(--accent) var(--value), var(--border) var(--value), var(--border) 100%);
+  background: linear-gradient(
+    to right,
+    var(--accent) 0%,
+    var(--accent) var(--value),
+    var(--border) var(--value),
+    var(--border) 100%
+  );
   outline: none;
   -webkit-appearance: none;
   appearance: none;
@@ -156,67 +190,51 @@ input[type="range"] {
   transition: background 0.3s ease;
 }
 
-/* Slider thumb - Chrome, Safari, Edge */
+/* Chrome / Safari / Edge thumb */
 input[type="range"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   appearance: none;
-  width: 18px;
-  height: 18px;
+  width: 18px; height: 18px;
   border-radius: 50%;
   background: var(--accent);
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(29, 78, 216, 0.3);
+  box-shadow: 0 2px 8px rgba(29,78,216,0.3);
   transition: all 0.2s ease;
   border: 2px solid #ffffff;
 }
-
 input[type="range"]::-webkit-slider-thumb:hover {
-  width: 22px;
-  height: 22px;
-  box-shadow: 0 4px 12px rgba(29, 78, 216, 0.5);
+  width: 22px; height: 22px;
+  box-shadow: 0 4px 12px rgba(29,78,216,0.5);
 }
-
 input[type="range"]::-webkit-slider-thumb:active {
   background: #1543c0;
-  box-shadow: 0 6px 16px rgba(29, 78, 216, 0.6);
+  box-shadow: 0 6px 16px rgba(29,78,216,0.6);
 }
 
-/* Slider thumb - Firefox */
+/* Firefox thumb */
 input[type="range"]::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
+  width: 18px; height: 18px;
   border-radius: 50%;
   background: var(--accent);
   cursor: pointer;
-  box-shadow: 0 2px 8px rgba(29, 78, 216, 0.3);
+  box-shadow: 0 2px 8px rgba(29,78,216,0.3);
   transition: all 0.2s ease;
   border: 2px solid #ffffff;
 }
-
 input[type="range"]::-moz-range-thumb:hover {
-  width: 22px;
-  height: 22px;
-  box-shadow: 0 4px 12px rgba(29, 78, 216, 0.5);
+  width: 22px; height: 22px;
+  box-shadow: 0 4px 12px rgba(29,78,216,0.5);
 }
-
 input[type="range"]::-moz-range-thumb:active {
   background: #1543c0;
-  box-shadow: 0 6px 16px rgba(29, 78, 216, 0.6);
+  box-shadow: 0 6px 16px rgba(29,78,216,0.6);
 }
 
-/* Slider track - Firefox */
-input[type="range"]::-moz-range-track {
-  background: transparent;
-  border: none;
-}
+/* Firefox track */
+input[type="range"]::-moz-range-track    { background: transparent; border: none; }
+input[type="range"]::-moz-range-progress { background: var(--accent); border-radius: 5px; height: 6px; }
 
-input[type="range"]::-moz-range-progress {
-  background: var(--accent);
-  border-radius: 5px;
-  height: 6px;
-}
-
-/* Focus state for accessibility */
+/* Accessibility focus */
 input[type="range"]:focus {
   outline: 2px solid var(--accent);
   outline-offset: 2px;

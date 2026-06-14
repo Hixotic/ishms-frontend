@@ -41,4 +41,4 @@ Ensure you have the following installed on your machine:
 1. **Clone the repository:**
    ```bash
    git clone [https://github.com/Hixotic/ishms-frontend.git](https://github.com/Hixotic/ishms-frontend.git)
-   cd ishms-frontend
+   cd ishms-frontend.

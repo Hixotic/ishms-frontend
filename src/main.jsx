@@ -2,16 +2,16 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./styles/index.css";
-import { setApiMode, initializeAuthToken } from "./api/apiHandler";
+import { setApiMode, initializeAuthToken } from "./features/APIS/apiHandler";
 
 async function init() {
   try {
-    const response = await fetch('/config.json');
+    const response = await fetch("/config.json");
     const config = await response.json();
     setApiMode(config.apiMode);
   } catch (error) {
-    console.warn('Failed to load config.json, using default mode: live');
-    setApiMode('live');
+    console.warn("Failed to load config.json, using default mode: live");
+    setApiMode("live");
   }
 
   // Initialize auth token from localStorage
@@ -20,7 +20,7 @@ async function init() {
   ReactDOM.createRoot(document.getElementById("root")).render(
     <React.StrictMode>
       <App />
-    </React.StrictMode>
+    </React.StrictMode>,
   );
 }
 

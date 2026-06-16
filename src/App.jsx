@@ -9,6 +9,7 @@ import React, { useState } from "react";
 
 import AuthPage from "./features/AuthPage";
 import AuthProvider, { useAuth } from "./features/Auth/AuthProvider";
+import { SignalRProvider } from "./features/APIS/useSignalR.jsx";
 import { IProvider } from "./features/Shared/IContext";
 
 // Reception
@@ -122,90 +123,100 @@ function RoleAwareLayout() {
   return <Layout user={auth.user} />;
 }
 
+function SignalRBridge({ children }) {
+  const { token } = useAuth();
+  return <SignalRProvider token={token}>{children}</SignalRProvider>;
+}
+
 // ─── App ─────────────────────────────────────────────────────────────────────
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <IProvider>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/login" element={<AuthPage defaultMode="login" />} />
-            <Route
-              path="/register"
-              element={<AuthPage defaultMode="register" />}
-            />
-
-            {/* Protected shell — RoleAwareLayout renders <Outlet /> inside */}
-            <Route
-              path="/"
-              element={
-                <RequireAuth>
-                  <RoleAwareLayout />
-                </RequireAuth>
-              }
-            >
-              {/* Default & dashboard */}
-              <Route index element={<RoleAwareDashboard />} />
-              <Route path="dashboard" element={<RoleAwareDashboard />} />
-
-              {/* Shared */}
-              <Route path="patients" element={<Patients />} />
-              <Route path="TasksPage" element={<TasksPage />} />
-              <Route path="AlertsPage" element={<AlertsPage />} />
-
-              {/* Doctor */}
-              <Route path="doctor" element={<DoctorDashboard />} />
-              <Route path="patients/:id" element={<PatientDetail />} />
-
-              {/* nurse */}
-              <Route path="nurse" element={<NurseDashboard />} />
+        <SignalRBridge>
+          <IProvider>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/login" element={<AuthPage defaultMode="login" />} />
               <Route
-                path="/nurse/patient/:id"
-                element={<NursePatientDetails />}
+                path="/register"
+                element={<AuthPage defaultMode="register" />}
               />
 
-              {/* Reception */}
-              <Route path="reception" element={<ReceptionDashboard />} />
-              <Route path="patient/:id" element={<PatientDetailsModal />} />
-              <Route path="reception-tasks" element={<ReceptionDashboard />} />
-              <Route path="admission" element={<ReceptionDashboard />} />
-              <Route path="beds" element={<ReceptionDashboard />} />
-              <Route path="discharge" element={<ReceptionDashboard />} />
-              <Route path="alerts" element={<ReceptionDashboard />} />
-
-              {/* Analytics */}
-              <Route path="executive" element={<ExecutiveDashboard />} />
-              <Route path="clinical" element={<ClinicalDashboard />} />
-              <Route path="operations" element={<OperationsDashboard />} />
-
-              {/* Admin — nested so they inherit AdminLayout's Outlet */}
-              <Route path="admin" element={<AdminDashboard />} />
-              <Route path="admin/heatmap" element={<WardHeatmap />} />
+              {/* Protected shell — RoleAwareLayout renders <Outlet /> inside */}
               <Route
-                path="admin/patient/:patientId"
-                element={<PatientDetails />}
-              />
-              <Route path="admin/alerts" element={<ClinicalAlerts />} />
-              <Route path="admin/staff" element={<StaffActivity />} />
-              <Route path="admin/incidents" element={<IncidentLogs />} />
-              <Route path="admin/users" element={<UserManagement />} />
-              <Route path="admin/roles" element={<RolesPermissions />} />
-              <Route path="admin/settings" element={<Settings />} />
-              <Route
-                path="admin/ward-performance"
-                element={<WardPerformance />}
-              />
-              <Route path="admin/isbar" element={<ISBARReviews />} />
+                path="/"
+                element={
+                  <RequireAuth>
+                    <RoleAwareLayout />
+                  </RequireAuth>
+                }
+              >
+                {/* Default & dashboard */}
+                <Route index element={<RoleAwareDashboard />} />
+                <Route path="dashboard" element={<RoleAwareDashboard />} />
 
-              {/* Fallback inside app */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Route>
+                {/* Shared */}
+                <Route path="patients" element={<Patients />} />
+                <Route path="TasksPage" element={<TasksPage />} />
+                <Route path="AlertsPage" element={<AlertsPage />} />
 
-            {/* Global fallback */}
-            <Route path="*" element={<Navigate to="/login" replace />} />
-          </Routes>
-        </IProvider>
+                {/* Doctor */}
+                <Route path="doctor" element={<DoctorDashboard />} />
+                <Route path="patients/:id" element={<PatientDetail />} />
+
+                {/* nurse */}
+                <Route path="nurse" element={<NurseDashboard />} />
+                <Route
+                  path="/nurse/patient/:id"
+                  element={<NursePatientDetails />}
+                />
+
+                {/* Reception */}
+                <Route path="reception" element={<ReceptionDashboard />} />
+                <Route path="patient/:id" element={<PatientDetailsModal />} />
+                <Route
+                  path="reception-tasks"
+                  element={<ReceptionDashboard />}
+                />
+                <Route path="admission" element={<ReceptionDashboard />} />
+                <Route path="beds" element={<ReceptionDashboard />} />
+                <Route path="discharge" element={<ReceptionDashboard />} />
+                <Route path="alerts" element={<ReceptionDashboard />} />
+
+                {/* Analytics */}
+                <Route path="executive" element={<ExecutiveDashboard />} />
+                <Route path="clinical" element={<ClinicalDashboard />} />
+                <Route path="operations" element={<OperationsDashboard />} />
+
+                {/* Admin — nested so they inherit AdminLayout's Outlet */}
+                <Route path="admin" element={<AdminDashboard />} />
+                <Route path="admin/heatmap" element={<WardHeatmap />} />
+                <Route
+                  path="admin/patient/:patientId"
+                  element={<PatientDetails />}
+                />
+                <Route path="admin/alerts" element={<ClinicalAlerts />} />
+                <Route path="admin/staff" element={<StaffActivity />} />
+                <Route path="admin/incidents" element={<IncidentLogs />} />
+                <Route path="admin/users" element={<UserManagement />} />
+                <Route path="admin/roles" element={<RolesPermissions />} />
+                <Route path="admin/settings" element={<Settings />} />
+                <Route
+                  path="admin/ward-performance"
+                  element={<WardPerformance />}
+                />
+                <Route path="admin/isbar" element={<ISBARReviews />} />
+
+                {/* Fallback inside app */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Route>
+
+              {/* Global fallback */}
+              <Route path="*" element={<Navigate to="/login" replace />} />
+            </Routes>
+          </IProvider>
+        </SignalRBridge>
       </AuthProvider>
     </BrowserRouter>
   );

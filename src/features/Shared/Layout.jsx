@@ -1,4 +1,10 @@
-import React, { useState, createContext, useEffect, useMemo } from "react";
+import React, {
+  useState,
+  createContext,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { Outlet, useLocation, useNavigate, Link } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -8,7 +14,6 @@ import {
   Menu,
   X,
   Search,
-  Bell,
   UserPlus,
   LayoutGrid,
   DoorOpen,
@@ -21,18 +26,12 @@ import { useAuth } from "../Auth/AuthProvider";
 import PatientDetailsModal from "../Reception/components/PatientDetailsModal";
 import { useData } from "./IContext";
 import { formatPatientId } from "../APIS/Handler";
-
-// SEARCH CONTEXT: Contains all patient and alert data shared across the layout and child pages
-// Use this in any child component to avoid re-fetching data
+import SignalRNotifications from "./SignalRNotifications";
 export const SearchContext = createContext();
-
 export default function MainLayout() {
-  const [fullWidth, setFullWidth] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
   const auth = useAuth();
-
-  // Get all hospital data from context (patients, alerts, etc.)
   const {
     searchTerm,
     setSearchTerm,
@@ -44,32 +43,23 @@ export default function MainLayout() {
     isDoctor,
     isReceptionist,
   } = useData();
-
-  // Local UI states
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
   const [showDropdown, setShowDropdown] = useState(false);
-  const [notifOpen, setNotifOpen] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [showPatientModal, setShowPatientModal] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
+  const headerRef = useRef(null);
   const role = auth.user?.role?.toLowerCase();
-
-  // Responsive handling
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-      if (mobile) {
-        setSidebarOpen(false);
-      } else if (window.innerWidth >= 1024) {
-        setSidebarOpen(true);
-      }
+      if (mobile) setSidebarOpen(false);
+      else if (window.innerWidth >= 1024) setSidebarOpen(true);
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
-
   const handlePatientSelect = (patient) => {
     setSearchTerm("");
     setShowDropdown(false);
@@ -80,30 +70,10 @@ export default function MainLayout() {
       navigate(`/patients/${patient.id}`);
     }
   };
-
-  // UI Handlers
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
-  const toggleNotif = () => setNotifOpen(!notifOpen);
-
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (
-        notifOpen &&
-        !e.target.closest(".notif-panel") &&
-        !e.target.closest(".notif-btn")
-      ) {
-        setNotifOpen(false);
-      }
-    };
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, [notifOpen]);
-
   useEffect(() => {
     if (isMobile) setSidebarOpen(false);
   }, [location.pathname, isMobile]);
-
-  // Navigation Items Config
   const navItems = useMemo(() => {
     const common = [
       {
@@ -113,7 +83,6 @@ export default function MainLayout() {
         section: "Overview",
       },
     ];
-
     const receptionItems = [
       {
         to: "/admission",
@@ -146,7 +115,6 @@ export default function MainLayout() {
         section: "Information",
       },
     ];
-
     const doctorItems = [
       {
         to: "/TasksPage",
@@ -167,23 +135,17 @@ export default function MainLayout() {
         section: "Information",
       },
     ];
-
     return [...common, ...(isDoctor ? doctorItems : receptionItems)];
   }, [isDoctor]);
-
   const sections = [...new Set(navItems.map((item) => item.section))];
-
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-gray-50 font-sans text-slate-900">
-      {/* MOBILE OVERLAY */}
       {isMobile && sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300"
           onClick={toggleSidebar}
         />
       )}
-
-      {/* SIDEBAR */}
       <aside
         className={`
         ${sidebarOpen ? "w-64" : "w-20"} 
@@ -192,7 +154,6 @@ export default function MainLayout() {
         ${isMobile && !sidebarOpen ? "-translate-x-full" : "translate-x-0"}
       `}
       >
-        {/* LOGO */}
         <div
           className={`flex items-center ${sidebarOpen ? "justify-between px-6" : "justify-center px-4"} border-b border-slate-100 h-16`}
         >
@@ -215,8 +176,6 @@ export default function MainLayout() {
             </button>
           )}
         </div>
-
-        {/* NAVIGATION */}
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-6 custom-scrollbar">
           {sections.map((section) => (
             <div key={section} className="space-y-1">
@@ -238,8 +197,6 @@ export default function MainLayout() {
             </div>
           ))}
         </nav>
-
-        {/* USER PROFILE */}
         <div className="p-4 border-t border-slate-100 bg-slate-50/50">
           <div
             className={`flex items-center gap-3 p-2 rounded-xl transition-all ${sidebarOpen ? "bg-white shadow-sm border border-slate-100" : "justify-center"}`}
@@ -267,11 +224,11 @@ export default function MainLayout() {
           </button>
         </div>
       </aside>
-
-      {/* MAIN CONTENT AREA */}
       <main className="flex-1 flex flex-col min-w-0 relative">
-        {/* HEADER */}
-        <header className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 md:px-10 sticky top-0 z-30">
+        <header
+          ref={headerRef}
+          className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 md:px-10 sticky top-0 z-30"
+        >
           <div className="flex items-center gap-4">
             {isMobile && (
               <button
@@ -286,8 +243,6 @@ export default function MainLayout() {
                 "Dashboard"}
             </h1>
           </div>
-
-          {/* SEARCH */}
           <div className="flex-1 max-w-md mx-4 relative group">
             <div className="relative flex items-center">
               <Search
@@ -303,11 +258,10 @@ export default function MainLayout() {
                   setShowDropdown(true);
                 }}
                 onFocus={() => setShowDropdown(true)}
+                onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
                 className="w-full pl-12 pr-4 py-2 bg-slate-100 border-transparent border-2 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-50 rounded-2xl text-sm font-semibold transition-all outline-none"
               />
             </div>
-
-            {/* SEARCH RESULTS */}
             {showDropdown && searchTerm && (
               <div className="absolute top-full left-0 right-0 mt-3 bg-white border border-slate-200 rounded-2xl shadow-2xl z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
                 {filteredPatients.length > 0 ? (
@@ -361,87 +315,13 @@ export default function MainLayout() {
               </div>
             )}
           </div>
-
-          {/* ACTIONS */}
           <div className="flex items-center gap-3">
-            <div className="relative">
-              <button
-                onClick={toggleNotif}
-                className={`notif-btn w-10 h-10 rounded-xl border flex items-center justify-center transition-all ${
-                  notifOpen
-                    ? "bg-blue-50 border-blue-200 text-blue-600"
-                    : "bg-white border-slate-200 text-slate-500 hover:border-blue-300 hover:text-blue-600"
-                }`}
-              >
-                <Bell size={18} />
-                {alerts.length > 0 && (
-                  <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 border-2 border-white rounded-full animate-pulse" />
-                )}
-              </button>
-
-              {/* NOTIFICATION PANEL */}
-              {notifOpen && (
-                <div className="notif-panel absolute top-full right-0 mt-3 w-80 sm:w-96 bg-white border border-slate-200 rounded-2xl shadow-2xl z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                  <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-                    <h3 className="font-bold text-slate-800">Notifications</h3>
-                    <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-[10px] font-black rounded-full uppercase">
-                      {alerts.length} New
-                    </span>
-                  </div>
-
-                  <div className="max-h-[400px] overflow-y-auto p-2 space-y-1">
-                    {alertsLoading ? (
-                      <div className="p-8 text-center">
-                        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-                        <p className="text-xs font-bold text-slate-500">
-                          Loading alerts...
-                        </p>
-                      </div>
-                    ) : alerts.length > 0 ? (
-                      alerts.map((alert) => (
-                        <div
-                          key={alert.id}
-                          className="p-3 hover:bg-slate-50 rounded-xl transition-colors border border-transparent hover:border-slate-100"
-                        >
-                          <div className="flex gap-3">
-                            <div
-                              className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${
-                                alert.priority === "High"
-                                  ? "bg-red-500"
-                                  : alert.priority === "Medium"
-                                    ? "bg-amber-500"
-                                    : "bg-blue-500"
-                              }`}
-                            />
-                            <div className="flex-1">
-                              <p className="text-sm font-bold text-slate-800">
-                                {alert.message}
-                              </p>
-                              <p className="text-[10px] font-medium text-slate-500 mt-1">
-                                {alert.time} • {alert.patientName}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="p-8 text-center">
-                        <p className="text-sm font-bold text-slate-800">
-                          All caught up!
-                        </p>
-                        <p className="text-xs text-slate-500 mt-1">
-                          No new alerts to show
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
+            <SignalRNotifications
+              headerRef={headerRef}
+              onViewAll={() => navigate("/AlertsPage")}
+            />
           </div>
         </header>
-
-        {/* PAGE CONTENT */}
         <div className="flex-1 overflow-y-auto px-6 md:px-10 py-4 custom-scrollbar">
           <SearchContext.Provider
             value={{
@@ -457,8 +337,6 @@ export default function MainLayout() {
             <Outlet />
           </SearchContext.Provider>
         </div>
-
-        {/* PATIENT DETAILS MODAL */}
         {showPatientModal && selectedPatient && (
           <PatientDetailsModal
             patient={selectedPatient}
@@ -469,24 +347,23 @@ export default function MainLayout() {
     </div>
   );
 }
-
 function SidebarLink({ to, label, icon, collapsed, isActive }) {
   return (
     <Link
       to={to}
-      className={`
-        flex items-center gap-3 p-3 rounded-xl font-bold text-sm transition-all group
-        ${
-          isActive
-            ? "bg-blue-50 text-blue-600 shadow-sm shadow-blue-100"
-            : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
-        }
-        ${collapsed ? "justify-center" : "px-4"}
-      `}
+      className={`flex items-center gap-3 p-3 rounded-xl font-bold text-sm transition-all group ${
+        isActive
+          ? "bg-blue-50 text-blue-600 shadow-sm shadow-blue-100"
+          : "text-slate-500 hover:bg-slate-50 hover:text-slate-800"
+      } ${collapsed ? "justify-center" : "px-4"}`}
       title={collapsed ? label : ""}
     >
       <span
-        className={`transition-transform group-hover:scale-110 ${isActive ? "text-blue-600" : "text-slate-400 group-hover:text-blue-500"}`}
+        className={`transition-transform group-hover:scale-110 ${
+          isActive
+            ? "text-blue-600"
+            : "text-slate-400 group-hover:text-blue-500"
+        }`}
       >
         {icon}
       </span>

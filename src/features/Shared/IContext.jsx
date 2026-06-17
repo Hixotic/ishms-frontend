@@ -32,7 +32,9 @@ export function IProvider({ children }) {
         getAlertsByRole(role),
       ]);
 
-      setPatients(patientsRes.data || []);
+      setPatients(
+        (patientsRes.data || []).filter((p) => p.flowStatus !== "Discharged"),
+      );
       setAlerts(alertsRes.data || []);
     } catch (error) {
       console.error("Failed to fetch hospital data:", error);

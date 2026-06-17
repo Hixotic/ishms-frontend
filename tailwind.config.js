@@ -1,16 +1,21 @@
 /** @type {import('tailwindcss').Config} */
 export default {
+  darkMode: ["class"],
   content: [
     "./index.html",
     "./src/**/*.{js,jsx}",
+    "./client/index.html",
+    "./client/src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {
       // ─── Fonts ───────────────────────────────────────────────────────────
       fontFamily: {
-        sans:    ["Cairo", "sans-serif"],          // your default
-        manrope: ["Manrope", "sans-serif"],        // his admin font
-        jakarta: ["'Plus Jakarta Sans'", "sans-serif"], // his admin font
+        sans:    ["Cairo", "sans-serif"],
+        manrope: ["Manrope", "sans-serif"],
+        jakarta: ["'Plus Jakarta Sans'", "sans-serif"],
+        poppins: ["Poppins", "sans-serif"],
+        inter:   ["Inter", "sans-serif"],
       },
 
       // ─── Colors ──────────────────────────────────────────────────────────
@@ -19,7 +24,6 @@ export default {
         page:    "var(--bg-page)",
         panel:   "var(--bg-panel)",
         surface: "var(--bg-surface)",
-        primary: "var(--text-primary)",
         muted:   "var(--text-muted)",
         faint:   "var(--text-faint)",
         accent:  "var(--accent)",
@@ -27,17 +31,53 @@ export default {
         stable:  "var(--stable)",
         ai:      "var(--ai)",
 
-        // ── His admin hardcoded tokens (kept as-is so his components don't break) ──
-        bg:             "#F8FAFB",
-        card:           "#FFFFFF",
-        surf:           "#F2F4F5",
-        "admin-accent": "#2563EB",   // renamed — avoids overwriting your --accent var
-        success:        "#22C55E",
-        "admin-warning":"#F59E0B",   // renamed — avoids overwriting your --warning var
-        danger:         "#EF4444",
-        "txt-primary":  "#0F172A",
-        "txt-secondary":"#64748B",
-        "txt-muted":    "#94A3B8",
+        // ── Nurse / shadcn CSS-variable tokens ───────────────────────────
+        border:     "var(--border)",
+        input:      "var(--input)",
+        ring:       "var(--ring)",
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+        primary: {
+          DEFAULT:    "var(--primary)",
+          foreground: "var(--primary-foreground)",
+        },
+        secondary: {
+          DEFAULT:    "var(--secondary)",
+          foreground: "var(--secondary-foreground)",
+        },
+        destructive: {
+          DEFAULT:    "var(--destructive)",
+          foreground: "var(--destructive-foreground)",
+        },
+        popover: {
+          DEFAULT:    "var(--popover)",
+          foreground: "var(--popover-foreground)",
+        },
+        card: {
+          DEFAULT:    "var(--card)",
+          foreground: "var(--card-foreground)",
+        },
+        status: {
+          stable:      "var(--status-stable)",
+          critical:    "var(--status-critical)",
+          "needs-care":"var(--status-needs-care)",
+        },
+        news: {
+          low:    "var(--news-low)",
+          medium: "var(--news-medium)",
+          high:   "var(--news-high)",
+        },
+
+        // ── Admin hardcoded tokens ────────────────────────────────────────
+        bg:              "#F8FAFB",
+        surf:            "#F2F4F5",
+        "admin-accent":  "#2563EB",
+        success:         "#22C55E",
+        "admin-warning": "#F59E0B",
+        danger:          "#EF4444",
+        "txt-primary":   "#0F172A",
+        "txt-secondary": "#64748B",
+        "txt-muted":     "#94A3B8",
       },
 
       // ─── Border color shorthand ──────────────────────────────────────────
@@ -57,13 +97,16 @@ export default {
 
       // ─── Border radius ───────────────────────────────────────────────────
       borderRadius: {
-        xl:  "16px",
+        sm:    "calc(var(--radius) - 4px)",
+        md:    "calc(var(--radius) - 2px)",
+        lg:    "var(--radius)",
+        xl:    "16px",
         "2xl": "20px",
       },
 
       // ─── Shadows ─────────────────────────────────────────────────────────
       boxShadow: {
-        card:       "0 1px 3px rgba(15,23,42,0.06), 0 4px 16px rgba(15,23,42,0.05)",
+        card:        "0 1px 3px rgba(15,23,42,0.06), 0 4px 16px rgba(15,23,42,0.05)",
         "card-hover":"0 4px 24px rgba(15,23,42,0.10)",
       },
 
@@ -75,5 +118,5 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [require("tailwindcss-animate")],
 };

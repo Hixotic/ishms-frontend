@@ -37,7 +37,7 @@ const DrugCheckModal = ({ patientId, onClose, onOpenMedicalReport }) => {
   const hasRisks = result && result.length > 0;
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[2000] p-4">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[2000] p-4">
       <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-lg w-full overflow-hidden flex flex-col animate-in fade-in zoom-in duration-300 border border-white/20">
         {/* Header Section */}
         <div className="p-8 text-center relative bg-gradient-to-b from-slate-50 to-white border-b border-slate-100">

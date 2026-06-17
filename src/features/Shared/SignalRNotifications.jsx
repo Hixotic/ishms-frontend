@@ -500,34 +500,47 @@ function NotificationTooltip({
 
 /* ─── BellButton ─── */
 const BellButton = React.forwardRef(
-  ({ unreadCount, status, onClick, isOpen }, ref) => (
-    <button
-      ref={ref}
-      onClick={onClick}
-      aria-label={`Notifications${unreadCount > 0 ? `, ${unreadCount} unread` : ""}`}
-      className={`relative w-9 h-9 rounded-xl border flex items-center justify-center transition-all duration-150 ${
-        isOpen
-          ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-200"
-          : status === "connected"
-            ? "bg-white border-slate-200 text-slate-500 hover:border-blue-300 hover:text-blue-600 hover:shadow-sm"
-            : "bg-slate-50 border-slate-100 text-slate-300 cursor-not-allowed"
-      }`}
-    >
-      <Bell
-        size={17}
-        strokeWidth={2}
-        className={isOpen ? "fill-white/20" : ""}
-      />
-      {unreadCount > 0 && (
-        <span
-          className={`absolute -top-1.5 -right-1.5 min-w-[15px] h-[15px] px-1 bg-red-500 border-[2px] border-white rounded-full flex items-center justify-center text-[9px] font-bold text-white transition-transform ${isOpen ? "scale-0" : "scale-100"}`}
-        >
-          {unreadCount > 9 ? "9+" : unreadCount}
-        </span>
-      )}
-    </button>
-  ),
+  ({ unreadCount, alerts = [], status, onClick, isOpen }, ref) => {
+    const hasUnread = unreadCount > 0;
+    const hasAlerts = alerts.length > 0;
+
+    const badgeCount = hasUnread ? unreadCount : alerts.length;
+
+    const badgeColor = hasUnread ? "bg-red-500" : "bg-yellow-500";
+
+    return (
+      <button
+        ref={ref}
+        onClick={onClick}
+        aria-label={`Notifications${
+          badgeCount > 0 ? `, ${badgeCount} unread` : ""
+        }`}
+        className={`relative w-9 h-9 rounded-xl border flex items-center justify-center transition-all duration-150 ${
+          isOpen
+            ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-200"
+            : "bg-white border-slate-200 text-slate-500 hover:border-blue-300 hover:text-blue-600 hover:shadow-sm"
+        }`}
+      >
+        <Bell
+          size={17}
+          strokeWidth={2}
+          className={isOpen ? "fill-white/20" : ""}
+        />
+
+        {(hasUnread || hasAlerts) && (
+          <span
+            className={`absolute -top-1.5 -right-1.5 min-w-[15px] h-[15px] px-1 ${badgeColor} border-[2px] border-white rounded-full flex items-center justify-center text-[9px] font-bold text-white transition-transform ${
+              isOpen ? "scale-0" : "scale-100"
+            }`}
+          >
+            {badgeCount > 9 ? "9+" : badgeCount}
+          </span>
+        )}
+      </button>
+    );
+  },
 );
+
 BellButton.displayName = "BellButton";
 
 /* ─── Main ─── */
@@ -581,6 +594,7 @@ export default function SignalRNotifications({ headerRef, onViewAll }) {
       <BellButton
         ref={bellRef}
         unreadCount={unreadCount}
+        alerts={alerts}
         status={status}
         isOpen={open}
         onClick={() => setOpen((p) => !p)}

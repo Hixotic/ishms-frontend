@@ -1,12 +1,21 @@
-import React from 'react';
-import { X, Printer, PenLine, User, Activity, ClipboardList, Info, AlertCircle, CheckCircle2 } from 'lucide-react';
+import React from "react";
+import {
+  X,
+  Printer,
+  PenLine,
+  User,
+  Activity,
+  ClipboardList,
+  Info,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
 
 const ISBARModal = ({ patient, isbar, onClose, onWriteReport }) => {
-  
   const handlePrint = () => {
-    const printWindow = window.open('', '_blank');
+    const printWindow = window.open("", "_blank");
     const currentDate = new Date().toLocaleString();
-    
+
     // Professional Print Layout with CSS
     const printHtml = `
       <html>
@@ -73,7 +82,7 @@ const ISBARModal = ({ patient, isbar, onClose, onWriteReport }) => {
         </body>
       </html>
     `;
-    
+
     printWindow.document.write(printHtml);
     printWindow.document.close();
     // Wait for styles/fonts to load
@@ -83,38 +92,61 @@ const ISBARModal = ({ patient, isbar, onClose, onWriteReport }) => {
   };
 
   const sections = [
-    { l: 'Identify', v: isbar.identify, c: 'blue', icon: <User size={14} /> },
-    { l: 'Situation', v: isbar.situation, c: 'amber', icon: <Activity size={14} /> },
-    { l: 'Background', v: isbar.background, c: 'emerald', icon: <Info size={14} /> },
-    { l: 'Assessment', v: isbar.assessment, c: 'rose', icon: <AlertCircle size={14} /> },
-    { l: 'Recommendation', v: isbar.recommendation, c: 'violet', icon: <CheckCircle2 size={14} /> }
+    { l: "Identify", v: isbar.identify, c: "blue", icon: <User size={14} /> },
+    {
+      l: "Situation",
+      v: isbar.situation,
+      c: "amber",
+      icon: <Activity size={14} />,
+    },
+    {
+      l: "Background",
+      v: isbar.background,
+      c: "emerald",
+      icon: <Info size={14} />,
+    },
+    {
+      l: "Assessment",
+      v: isbar.assessment,
+      c: "rose",
+      icon: <AlertCircle size={14} />,
+    },
+    {
+      l: "Recommendation",
+      v: isbar.recommendation,
+      c: "violet",
+      icon: <CheckCircle2 size={14} />,
+    },
   ];
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[2000] p-4">
+    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-[2000] p-4">
       <div className="bg-white rounded-[2.5rem] shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-300">
-        
         {/* Header */}
         <div className="bg-slate-900 text-white p-8 relative">
           <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
-          
+
           <div className="relative flex justify-between items-center">
             <div className="flex items-center gap-5">
               <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-900/40">
                 <ClipboardList size={28} className="text-white" />
               </div>
               <div>
-                <h2 className="text-2xl font-black tracking-tight uppercase">ISBAR Handover</h2>
+                <h2 className="text-2xl font-black tracking-tight uppercase">
+                  ISBAR Handover
+                </h2>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 text-[10px] font-black rounded-md uppercase tracking-widest">Confidential</span>
+                  <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 text-[10px] font-black rounded-md uppercase tracking-widest">
+                    Confidential
+                  </span>
                   <span className="text-white/40 text-[10px] font-bold uppercase tracking-widest">
                     {patient.fullName} • Bed {patient.bedId}
                   </span>
                 </div>
               </div>
             </div>
-            <button 
-              onClick={onClose} 
+            <button
+              onClick={onClose}
               className="p-3 hover:bg-white/10 rounded-2xl transition-all text-white/60 hover:text-white border border-white/5 hover:border-white/20"
             >
               <X size={20} />
@@ -125,12 +157,19 @@ const ISBARModal = ({ patient, isbar, onClose, onWriteReport }) => {
         {/* Content Area */}
         <div className="p-8 overflow-y-auto space-y-6 flex-1 hide-scrollbar bg-slate-50/30">
           {sections.map((item, i) => (
-            <div key={i} className="group bg-white p-6 rounded-3xl border border-slate-100 hover:border-slate-200 transition-all shadow-sm hover:shadow-md">
+            <div
+              key={i}
+              className="group bg-white p-6 rounded-3xl border border-slate-100 hover:border-slate-200 transition-all shadow-sm hover:shadow-md"
+            >
               <div className="flex items-center gap-3 mb-3">
-                <div className={`p-2 rounded-xl bg-${item.c}-50 text-${item.c}-600`}>
+                <div
+                  className={`p-2 rounded-xl bg-${item.c}-50 text-${item.c}-600`}
+                >
                   {item.icon}
                 </div>
-                <h3 className={`text-[10px] font-black text-${item.c}-900 uppercase tracking-[0.2em]`}>
+                <h3
+                  className={`text-[10px] font-black text-${item.c}-900 uppercase tracking-[0.2em]`}
+                >
                   {item.l}
                 </h3>
               </div>
@@ -143,15 +182,15 @@ const ISBARModal = ({ patient, isbar, onClose, onWriteReport }) => {
 
         {/* Footer Actions */}
         <div className="p-8 bg-white border-t border-slate-50 flex gap-4">
-          <button 
-            onClick={handlePrint} 
+          <button
+            onClick={handlePrint}
             className="flex-1 py-5 bg-blue-600 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] hover:bg-blue-700 hover:shadow-xl hover:shadow-blue-200 transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
           >
             <Printer size={18} />
             Generate PDF Report
           </button>
-          <button 
-            onClick={onWriteReport} 
+          <button
+            onClick={onWriteReport}
             className="flex-1 py-5 bg-slate-900 text-white rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] hover:bg-slate-800 transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
           >
             <PenLine size={18} />
@@ -159,7 +198,7 @@ const ISBARModal = ({ patient, isbar, onClose, onWriteReport }) => {
           </button>
         </div>
       </div>
-      
+
       {/* Scrollbar Hide CSS */}
       <style>{`
         .hide-scrollbar::-webkit-scrollbar { display: none; }

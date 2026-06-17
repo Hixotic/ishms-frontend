@@ -21,6 +21,7 @@ import * as signalR from "@microsoft/signalr";
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 
 const MOCK_MODE = false; // ← flip to false when backend hub is ready
+const DISABLE_MODE = true;
 
 const HUB_URL =
   import.meta.env?.VITE_HUB_URL ||
@@ -173,6 +174,12 @@ export function useSignalR(token, { maxEvents = 50 } = {}) {
   );
 
   useEffect(() => {
+    // ── DISABLE MODE ─────────────────────────────────────────────────────────
+    if (DISABLE_MODE) {
+      setStatus("disconnected");
+      return;
+    }
+
     if (!token) {
       setStatus("disconnected");
       return;

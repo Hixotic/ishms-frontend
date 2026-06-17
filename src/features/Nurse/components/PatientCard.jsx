@@ -6,186 +6,221 @@ import {
   Activity,
   AlertTriangle,
 } from "lucide-react";
-
-/* ---------------- NEWS SCORE (INLINE IMPLEMENTATION) ---------------- */
-
-const calculateNewsScore = (v) => {
-  if (!v) return 0;
-
-  const hr = Number(v.heartRate) || 0;
-  const temp = Number(v.temperature) || 0;
-  const o2 = Number(v.oxygenLevel) || 0;
-  const rr = Number(v.respirationRate) || 0;
-
-  let score = 0;
-
-  // Heart Rate
-  if (hr <= 40 || hr >= 131) score += 3;
-  else if (hr >= 111) score += 2;
-  else if (hr >= 91) score += 1;
-
-  // Oxygen
-  if (o2 <= 91) score += 3;
-  else if (o2 <= 93) score += 2;
-  else if (o2 <= 95) score += 1;
-
-  // Temperature
-  if (temp <= 35 || temp >= 39) score += 2;
-  else if (temp >= 38) score += 1;
-
-  // Respiration
-  if (rr <= 8 || rr >= 25) score += 3;
-  else if (rr >= 21) score += 2;
-  else if (rr >= 19) score += 1;
-
-  return score;
-};
-
-const getNewsRiskLabel = (score) => {
-  if (score >= 7) return "CRITICAL";
-  if (score >= 5) return "HIGH RISK";
-  if (score >= 3) return "MEDIUM";
-  return "LOW";
-};
-
-const getNewsBorderColorClass = (score) => {
-  if (score >= 7) return "border-red-500";
-  if (score >= 5) return "border-orange-400";
-  if (score >= 3) return "border-yellow-400";
-  return "border-green-400";
-};
-
-const getNewsTextColorClass = (score) => {
-  if (score >= 7) return "text-red-600";
-  if (score >= 5) return "text-orange-500";
-  if (score >= 3) return "text-yellow-600";
-  return "text-green-600";
-};
-
-const getNewsBgColorClass = (score) => {
-  if (score >= 7) return "bg-red-500";
-  if (score >= 5) return "bg-orange-400";
-  if (score >= 3) return "bg-yellow-400";
-  return "bg-green-500";
-};
-
-/* ---------------- COMPONENT ---------------- */
+import {
+  calculateNewsScore,
+  getNewsBorderColorClass,
+  getNewsTextColorClass,
+  getNewsBgColorClass,
+  getNewsRiskLabel,
+} from "../lib/newsScore";
 
 export default function PatientCard({ patient, onClick }) {
   if (!patient) return null;
 
-  const normalizeStatus = (status) =>
-    String(status || "")
+  const normalizeStatus = (status) => {
+    return String(status || "")
       .trim()
       .toLowerCase()
       .replace(/\s+/g, "_");
+  };
 
-  const status = normalizeStatus(patient.status);
-
-  const getStatusStyle = () => {
-    switch (status) {
+  const getStatusColor = (status) => {
+    const normalized = normalizeStatus(status);
+    switch (normalized) {
       case "stable":
-        return "border-green-400 bg-green-50";
+        return "status-stable";
       case "critical":
-        return "border-red-400 bg-red-50";
+        return "status-critical animate-pulse-critical";
       case "needs_care":
-        return "border-orange-400 bg-orange-50";
+        return "status-needs-care";
       default:
-        return "border-gray-300 bg-white";
+        return "bg-gray-400";
     }
   };
 
-  /* ---------------- VITALS ---------------- */
-
-  const v = patient.latestVitalSign || {};
-
-  const vitals = {
-    heartRate: v.heartRate ?? "—",
-    oxygenLevel: v.oxygenLevel ?? "—",
-    temperature: v.temperature ?? "—",
-    respirationRate: v.respirationRate ?? "—",
-    updatedAt: v.recordedAt || "Just now",
+  const getStatusLabel = (status) => {
+    const normalized = normalizeStatus(status);
+    switch (normalized) {
+      case "stable":
+        return "Stable";
+      case "critical":
+        return "Critical";
+      case "needs_care":
+        return "Needs Care";
+      default:
+        return "Unknown";
+    }
   };
 
-  const newsScore = calculateNewsScore(v);
+  const getStatusInitial = (status) => {
+    const normalized = normalizeStatus(status);
+    switch (normalized) {
+      case "stable":
+        return "S";
+      case "critical":
+        return "C";
+      case "needs_care":
+        return "N";
+      default:
+        return "?";
+    }
+  };
+
+  let record = {};
+  const mergedVitals = patient.lastVitals || patient.vitals;
+  if (
+    mergedVitals &&
+    typeof mergedVitals === "object" &&
+    Object.keys(mergedVitals).length > 0
+  ) {
+    const hasVitalData =
+      mergedVitals.heartRate != null ||
+      mergedVitals.HeartRate != null ||
+      mergedVitals.temperature != null ||
+      mergedVitals.Temperature != null ||
+      mergedVitals.systolicPressure != null ||
+      mergedVitals.SystolicPressure != null ||
+      mergedVitals.oxygenLevel != null ||
+      mergedVitals.OxygenLevel != null;
+    if (hasVitalData) {
+      record = mergedVitals;
+    }
+  }
+
+  if (!record || Object.keys(record).length === 0) {
+    if (Array.isArray(patient.vitalSigns) && patient.vitalSigns.length > 0) {
+      record = patient.vitalSigns[0];
+    }
+  }
+
+  if (
+    (!record || Object.keys(record).length === 0) &&
+    patient.latestVitalSign
+  ) {
+    if (Array.isArray(patient.latestVitalSign)) {
+      record =
+        patient.latestVitalSign
+          .filter(Boolean)
+          .map((entry) => ({
+            ...entry,
+            timestamp: entry?.RecordedAt || entry?.recordedAt || "",
+          }))
+          .filter((entry) => entry.timestamp)
+          .sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp))
+          .pop() ||
+        patient.latestVitalSign[0] ||
+        {};
+    } else if (typeof patient.latestVitalSign === "object") {
+      record = patient.latestVitalSign;
+    }
+  }
+
+  const safeRecord = record || {};
+  const vitals = {
+    heartRate: safeRecord.HeartRate ?? safeRecord.heartRate ?? "N/A",
+    systolicPressure:
+      safeRecord.SystolicPressure ?? safeRecord.systolicPressure ?? "N/A",
+    diastolicPressure:
+      safeRecord.DiastolicPressure ?? safeRecord.diastolicPressure ?? "N/A",
+    oxygenLevel: safeRecord.OxygenLevel ?? safeRecord.oxygenLevel ?? "N/A",
+    temperature: safeRecord.Temperature ?? safeRecord.temperature ?? "N/A",
+    respirationRate:
+      safeRecord.RespirationRate ?? safeRecord.respirationRate ?? "N/A",
+    updatedAt:
+      safeRecord.timestamp ||
+      safeRecord.RecordedAt ||
+      safeRecord.recordedAt ||
+      "Just now",
+  };
+
+  const newsScore = calculateNewsScore(vitals);
+  const borderClass = getNewsBorderColorClass(newsScore);
+  const newsTextClass = getNewsTextColorClass(newsScore);
+  const newsBgClass = getNewsBgColorClass(newsScore);
   const riskLabel = getNewsRiskLabel(newsScore);
 
   return (
     <div
       onClick={onClick}
-      className={`
-        cursor-pointer rounded-xl p-5 border-l-4 shadow-sm
-        transition hover:shadow-md hover:-translate-y-1
-        bg-white ${getStatusStyle()} ${getNewsBorderColorClass(newsScore)}
-      `}
+      className={`patient-card cursor-pointer hover:shadow-2xl transition-all duration-300 transform hover:-translate-y-2 border-2 border-l-8 rounded-2xl ${borderClass}`}
     >
-      {/* HEADER */}
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <h3 className="text-lg font-bold text-gray-900">
-            {patient.fullName}
-          </h3>
-          <p className="text-sm text-gray-500">
-            Bed {patient.bedId} • Age {patient.age}
-          </p>
+      <div className="flex items-start justify-between mb-6">
+        <div className="flex items-center space-x-4">
+          <div
+            className={`status-badge w-12 h-12 flex items-center justify-center rounded-2xl text-white font-bold text-lg shadow-lg ${getStatusColor(patient.status)}`}
+          >
+            {getStatusInitial(patient.status)}
+          </div>
+          <div>
+            <h3 className="font-bold text-xl text-foreground">
+              {patient.name || patient.fullName}
+            </h3>
+            <p className="text-sm font-medium text-muted-foreground">
+              ID: {patient.id}
+              {patient.roomNumber || patient.bedId != null
+                ? ` | Room: ${patient.roomNumber || patient.bedId}`
+                : ""}
+            </p>
+          </div>
         </div>
+        {newsScore != null && (
+          <div
+            className={`flex flex-col items-center px-4 py-2 rounded-2xl ${newsBgClass} text-white shadow-lg`}
+          >
+            <span className="text-[10px] font-bold uppercase tracking-wider opacity-80">
+              NEWS
+            </span>
+            <span className="text-2xl font-black leading-tight">
+              {newsScore}
+            </span>
+          </div>
+        )}
+      </div>
 
-        <div
-          className={`px-3 py-1 rounded-full text-white text-xs font-bold ${getNewsBgColorClass(
-            newsScore,
-          )}`}
-        >
-          NEWS {newsScore}
+      <div className="flex items-center gap-2 mb-5">
+        <div className="inline-block px-3 py-1 bg-secondary rounded-xl text-xs font-bold text-foreground/70 uppercase tracking-wide">
+          {getStatusLabel(patient.status)}
+        </div>
+        {newsScore != null && (
+          <div
+            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold uppercase tracking-wide ${newsTextClass} bg-secondary`}
+          >
+            <AlertTriangle size={14} />
+            {riskLabel}
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 mb-6">
+        <div className="vital-display bg-secondary/30 rounded-2xl p-4 border border-border/50">
+          <Heart size={18} className="text-red-500 mb-2" />
+          <div className="vital-value text-2xl">{vitals.heartRate}</div>
+          <div className="vital-label text-[10px]">Heart Rate</div>
+        </div>
+        <div className="vital-display bg-secondary/30 rounded-2xl p-4 border border-border/50">
+          <Thermometer size={18} className="text-orange-500 mb-2" />
+          <div className="vital-value text-2xl">
+            {vitals.temperature !== "N/A" ? `${vitals.temperature}°` : "—"}
+          </div>
+          <div className="vital-label text-[10px]">Temperature</div>
+        </div>
+        <div className="vital-display bg-secondary/30 rounded-2xl p-4 border border-border/50">
+          <Activity size={18} className="text-blue-500 mb-2" />
+          <div className="vital-value text-2xl">
+            {vitals.oxygenLevel !== "N/A" ? `${vitals.oxygenLevel}%` : "—"}
+          </div>
+          <div className="vital-label text-[10px]">Oxygen</div>
+        </div>
+        <div className="vital-display bg-secondary/30 rounded-2xl p-4 border border-border/50">
+          <Wind size={18} className="text-green-500 mb-2" />
+          <div className="vital-value text-2xl">{vitals.respirationRate}</div>
+          <div className="vital-label text-[10px]">Respiration</div>
         </div>
       </div>
 
-      {/* STATUS */}
-      <div className="flex items-center gap-2 mb-4">
-        <span
-          className={`text-xs font-semibold px-2 py-1 rounded bg-white border`}
-        >
-          {status.toUpperCase()}
-        </span>
-
-        <span
-          className={`text-xs font-semibold ${getNewsTextColorClass(
-            newsScore,
-          )}`}
-        >
-          <AlertTriangle size={12} className="inline mr-1" />
-          {riskLabel}
-        </span>
+      <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-t border-border pt-4">
+        Last Updated: {vitals.updatedAt}
       </div>
-
-      {/* VITALS */}
-      <div className="grid grid-cols-2 gap-3 mb-4 text-gray-800">
-        <div className="p-2 bg-gray-50 rounded">
-          <Heart className="text-red-500 w-4 h-4 mb-1" />
-          <p className="text-sm font-bold">{vitals.heartRate}</p>
-          <p className="text-xs text-gray-500">Heart Rate</p>
-        </div>
-
-        <div className="p-2 bg-gray-50 rounded">
-          <Thermometer className="text-orange-500 w-4 h-4 mb-1" />
-          <p className="text-sm font-bold">{vitals.temperature}°</p>
-          <p className="text-xs text-gray-500">Temperature</p>
-        </div>
-
-        <div className="p-2 bg-gray-50 rounded">
-          <Activity className="text-blue-500 w-4 h-4 mb-1" />
-          <p className="text-sm font-bold">{vitals.oxygenLevel}%</p>
-          <p className="text-xs text-gray-500">Oxygen</p>
-        </div>
-
-        <div className="p-2 bg-gray-50 rounded">
-          <Wind className="text-green-500 w-4 h-4 mb-1" />
-          <p className="text-sm font-bold">{vitals.respirationRate}</p>
-          <p className="text-xs text-gray-500">Respiration</p>
-        </div>
-      </div>
-
-      {/* FOOTER */}
-      <p className="text-xs text-gray-400">Last updated: {vitals.updatedAt}</p>
     </div>
   );
 }

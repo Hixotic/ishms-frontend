@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Link, Outlet } from "react-router-dom";
-import { Settings, Menu, X, Bell, Search, User } from "lucide-react";
+import { Settings, Menu, X, Bell, Search, User, LogOut } from "lucide-react";
 import { useTheme } from "../contexts/ThemeContext";
 import {
   Dialog,
@@ -10,12 +10,14 @@ import {
 } from "../components/ui/dialog";
 import { Button } from "../components/ui/button";
 import { getAllPatients } from "../lib/mockData";
+import { useAuth } from "../../Auth/AuthProvider";
 
 export default function NurseNavbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const { theme, toggleTheme } = useTheme();
+  const auth = useAuth();
 
   const patients = getAllPatients();
 
@@ -119,6 +121,9 @@ export default function NurseNavbar() {
                 className="inline-flex md:hidden items-center justify-center rounded-2xl border border-border bg-secondary p-2 text-foreground transition hover:bg-secondary/80"
               >
                 {isOpen ? <X size={22} /> : <Menu size={22} />}
+              </button>
+              <button onClick={() => auth.logout()} className={"px-4"}>
+                <LogOut size={18} />
               </button>
             </div>
           </div>

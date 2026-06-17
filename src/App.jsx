@@ -192,7 +192,7 @@ export default function App() {
 
                       {/* ── Nurse route tree (own layout, no RoleAwareLayout) ── */}
                       <Route
-                        path="/nurse"
+                        path="/nurse/"
                         element={
                           <RequireAuth>
                             <NurseLayout />

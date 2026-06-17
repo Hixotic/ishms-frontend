@@ -42,3 +42,7 @@ Ensure you have the following installed on your machine:
    ```bash
    git clone [https://github.com/Hixotic/ishms-frontend.git](https://github.com/Hixotic/ishms-frontend.git)
    cd ishms-frontend.
+   ```
+2. **install node.js if you don't have it**
+3. **npm install** 
+4. **npm run dev**

@@ -1,486 +1,461 @@
-// ─── CONFIG ───────────────────────────────────────────────────────────────────
+import axios from 'axios';
 
-export const API_BASE_URL =
-  import.meta.env?.VITE_API_BASE_URL ||
-  'https://ishms-api-2026-gedyf5g5bgbfb2dt.italynorth-01.azurewebsites.net';
+// 1. Define the API Configuration
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ishms-api-2026-gedyf5g5bgbfb2dt.italynorth-01.azurewebsites.net/';
+const LOGIN_ENDPOINT = `${API_BASE_URL}/Auth/login`;
 
-const STORAGE_KEY = 'ishms-auth';
-
-// ─── TOKEN MANAGEMENT ─────────────────────────────────────────────────────────
-
-/**
- * Read the Bearer token from localStorage.
- * Stored shape mirrors the API response:
- * {
- *   isAuthenticated: true,
- *   token: "eyJ...",
- *   tokenExpiration: "2026-...",
- *   email: "...",
- *   fullName: "...",
- *   roles: ["nurse"]
- * }
- * Also handles legacy shape: { token, user: { token } }
- */
-export const getStoredToken = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    return parsed?.token || parsed?.user?.token || null;
-  } catch {
-    return null;
-  }
-};
+// Local server API for persistent vitals storage (shared across all users)
+const LOCAL_API_BASE_URL = import.meta.env.VITE_LOCAL_API_URL || '/api';
 
 /**
- * Persist the full API auth response to localStorage after login/register.
- * @param {object} authData — the full response body from /api/Auth/login
+ * Handles user login and updates localStorage with the authentication status.
+ * @param {string} email - The user's email address.
+ * @param {string} password - The user's password.
  */
-export const saveAuthToken = (authData) => {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(authData));
-  } catch (e) {
-    console.warn('[api] Could not write to localStorage:', e);
-  }
-};
+async function loginUser(email, password) {
+  // Prepare the payload according to your schema
+  const loginData = {
+    email: email,
+    password: password
+  };
 
-/** Remove auth data from localStorage (logout). */
-export const clearAuthToken = () => {
   try {
-    localStorage.removeItem(STORAGE_KEY);
-  } catch {
-    // ignore
-  }
-};
+    // 2. Make the API Call
+    const response = await fetch(LOGIN_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(loginData)
+    }); 
 
-/**
- * Read the stored user info, normalised regardless of storage shape.
- * @returns {{ email, fullName, role, roles, tokenExpiration } | null}
- */
-export const getStoredUser = () => {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-
-    // Flat shape (real API response)
-    if (parsed?.email) {
-      return {
-        email: parsed.email,
-        fullName: parsed.fullName,
-        roles: parsed.roles ?? [],
-        role: parsed.roles?.[0] ?? null,
-        tokenExpiration: parsed.tokenExpiration ?? null,
-      };
+    // 3. Handle the Response
+    if (!response.ok) {
+      // If the server responded with an error status (e.g., 401 Unauthorized, 400 Bad Request)
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Login failed with status: ${response.status}`);
     }
 
-    // Legacy shape: { token, user: { email, fullName, role } }
-    if (parsed?.user) {
-      return {
-        ...parsed.user,
-        roles: parsed.user.roles ?? (parsed.user.role ? [parsed.user.role] : []),
-        role: parsed.user.role ?? parsed.user.roles?.[0] ?? null,
-      };
+    const data = await response.json();
+
+    // 4. Save Status to LocalStorage
+    // We store an isLoggedIn flag, the token (if returned), and the timestamp
+    localStorage.setItem('isLoggedIn', 'true');
+    
+    if (data.token) {
+      localStorage.setItem('authToken', data.token); 
+    }
+    
+    // Optional: Save user details if your API returns them
+    if (data.user) {
+      localStorage.setItem('userData', JSON.stringify(data.user));
     }
 
-    return null;
-  } catch {
+    console.log('Login successful! Status saved to localStorage.');
+    return { success: true, data };
+
+  } catch (error) {
+    console.error('Login Error:', error.message);
+    
+    // Make sure to clean up or set status to false if login fails
+    localStorage.setItem('isLoggedIn', 'false');
+    localStorage.removeItem('authToken');
+    
+    return { success: false, error: error.message };
+  }
+}
+
+// --- Example Usage ---
+loginUser('nurse@ishms.net', 'Test@123');
+
+const api = axios.create({
+  baseURL: API_BASE_URL,
+  headers: { 'Content-Type': 'application/json' },
+  timeout: 8000, // 8 seconds timeout to prevent long hangs
+});
+
+/**
+ * Retrieves the stored authentication token from localStorage.
+ * @returns {string|null} The token string if found, otherwise null.
+ */
+export const getAuthToken = () => {
+  try {
+    const token = localStorage.getItem('authToken');
+    if (!token || token.trim() === '') return null;
+    return token;
+  } catch (error) {
+    console.error('Error retrieving auth token from localStorage:', error);
     return null;
   }
 };
 
-// Convenience aliases kept for backward compatibility
-export const getAuthToken = getStoredToken;
+// Helper to set or remove the auth token in localStorage and axios defaults
 export const setAuthToken = (token) => {
-  if (token) saveAuthToken({ token });
-  else clearAuthToken();
-};
-
-// ─── CORE REQUEST ─────────────────────────────────────────────────────────────
-
-/**
- * Central fetch wrapper. Automatically attaches Authorization: Bearer <token>.
- *
- * @param {{
- *   method?: 'GET'|'POST'|'PUT'|'DELETE'|'PATCH',
- *   url: string,
- *   data?: object,
- *   params?: object,
- *   headers?: object,
- * }} options
- * @returns {Promise<{ status: number, data: any }>}
- * @throws On non-2xx responses (error.status and error.data are attached)
- */
-export const apiRequest = async ({
-  method = 'GET',
-  url,
-  data,
-  params,
-  headers = {},
-}) => {
-  const fullUrl = buildUrl(url, params);
-  const token = getStoredToken();
-
-  const requestHeaders = {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...headers,
-  };
-
-  const fetchOptions = {
-    method: method.toUpperCase(),
-    headers: requestHeaders,
-    ...(data !== undefined ? { body: JSON.stringify(data) } : {}),
-  };
-
-  const response = await fetch(fullUrl, fetchOptions);
-
-  // Parse body
-  let responseData;
-  const contentType = response.headers.get('content-type') || '';
-  if (contentType.includes('application/json')) {
-    responseData = await response.json();
-  } else {
-    const text = await response.text();
-    responseData = text || null;
-  }
-
-  if (response.status === 401) {
-    console.warn('[api] 401 Unauthorized — clearing stored token');
-    clearAuthToken();
-  }
-
-  if (!response.ok) {
-    const error = new Error(
-      responseData?.message || responseData?.title || `HTTP ${response.status}`
-    );
-    error.status = response.status;
-    error.data = responseData;
-    throw error;
-  }
-
-  return { status: response.status, data: responseData };
-};
-
-// ─── URL HELPERS ──────────────────────────────────────────────────────────────
-
-const buildUrl = (url, params) => {
-  if (/^https?:\/\//i.test(url)) {
-    const u = new URL(url);
-    if (params) appendParams(u.searchParams, params);
-    return u.toString();
-  }
-  const u = new URL(url, API_BASE_URL);
-  if (params) appendParams(u.searchParams, params);
-  return u.toString();
-};
-
-const appendParams = (searchParams, params) => {
-  for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined && value !== null) {
-      searchParams.append(key, value);
+  try {
+    if (token) {
+      localStorage.setItem('authToken', token);
+      localStorage.setItem('isLoggedIn', 'true');
+      api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    } else {
+      localStorage.removeItem('authToken');
+      localStorage.setItem('isLoggedIn', 'false');
+      delete api.defaults.headers.common['Authorization'];
     }
+  } catch (error) {
+    console.error('Error setting auth token:', error);
   }
 };
 
-// ─── AUTH ─────────────────────────────────────────────────────────────────────
+api.interceptors.request.use((config) => {
+  const token = getAuthToken();
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
 
-/**
- * POST /api/Auth/login
- * Saves the token + user to localStorage automatically on success.
- * @param {{ email: string, password: string }} credentials
- */
-export const authApi = {
-  login: async (credentials) => {
-    const res = await apiRequest({ method: 'POST', url: '/api/Auth/login', data: credentials });
-    if (res.data?.token) saveAuthToken(res.data);
-    return res;
-  },
-  register: async (userData) => {
-    const res = await apiRequest({ method: 'POST', url: '/api/Auth/register', data: userData });
-    if (res.data?.token) saveAuthToken(res.data);
-    return res;
-  },
-  logout: () => clearAuthToken(),
-  getToken: getStoredToken,
-  getUser: getStoredUser,
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response) {
+      console.error('API error:', {
+        url: error.config?.url,
+        status: error.response.status,
+        data: error.response.data,
+      });
+    } else {
+      console.error('Network error:', error.message);
+    }
+    return Promise.reject(error);
+  }
+);
+
+// Helper function to get local patient data (background, etc.)
+const getLocalPatientData = async (patientId) => {
+  try {
+    const response = await axios.get(`${LOCAL_API_BASE_URL}/patients/${patientId}`);
+    return response.data || null;
+  } catch (e) {
+    console.warn('Local server patient read failed, falling back to localStorage');
+    try {
+      const sessionPatients = JSON.parse(localStorage.getItem('session_patients') || '{}');
+      return sessionPatients[patientId] || null;
+    } catch (e2) { return null; }
+  }
 };
 
-// ─── PATIENTS ─────────────────────────────────────────────────────────────────
+// Helper function to get local vitals data
+const getLocalVitalsData = async (patientId) => {
+  try {
+    const response = await axios.get(`${LOCAL_API_BASE_URL}/vitals/${patientId}`);
+    return response.data || null;
+  } catch (e) {
+    console.warn('Local server vitals read failed, falling back to localStorage');
+    try {
+      const localData = JSON.parse(localStorage.getItem('session_vitals') || '{}');
+      return localData[patientId] || null;
+    } catch (e2) { return null; }
+  }
+};
 
 export const patientApi = {
-  /** GET /api/Patient */
-  getAllPatients: (params) =>
-    apiRequest({ method: 'GET', url: '/api/Patient', params }),
+  getAllPatients: async () => {
+    const response = await api.get('/Patient');
+    const patients = response.data || [];
+    const localVitalsByPatientId = await getAllLocalVitals();
 
-  /** GET /api/Patient/:id */
-  getPatientById: (id) =>
-    apiRequest({ method: 'GET', url: `/api/Patient/${id}` }),
-
-  /** GET /api/Patient/department/:departmentId */
-  getPatientsByDepartment: (departmentId) =>
-    apiRequest({ method: 'GET', url: `/api/Patient/department/${departmentId}` }),
-
-  /**
-   * POST /api/Patient
-   * @param {{ fullName, age, dateOfBirth, departmentId, bedId }} body
-   * Note: dateOfBirth must be ISO 8601, e.g. "1990-05-15T00:00:00Z"
-   */
-  createPatient: (body) =>
-    apiRequest({ method: 'POST', url: '/api/Patient', data: body }),
-
-  /** DELETE /api/Patient/:id */
-  deletePatient: (id) =>
-    apiRequest({ method: 'DELETE', url: `/api/Patient/${id}` }),
-
-  /**
-   * PUT /api/Patient/:id/nurse
-   * @param {{ patientId, background, previousMedications }} body
-   */
-  updatePatientNurse: (id, body) =>
-    apiRequest({ method: 'PUT', url: `/api/Patient/${id}/nurse`, data: body }),
-
-  /**
-   * PUT /api/Patient/:id/doctor
-   * @param {{ patientId, currentTreatment }} body
-   */
-  updatePatientDoctor: (id, body) =>
-    apiRequest({ method: 'PUT', url: `/api/Patient/${id}/doctor`, data: body }),
-
-  /** POST /api/Patient/discharge/:patientId */
-  dischargePatient: (patientId) =>
-    apiRequest({ method: 'POST', url: `/api/Patient/discharge/${patientId}` }),
-
-  /** GET /api/Patient/:id/medication/check */
-  checkMedication: (id) =>
-    apiRequest({ method: 'GET', url: `/api/Patient/${id}/medication/check` }),
-
-  /** GET /api/Patient/:id/isbar */
-  getIsbar: (id) =>
-    apiRequest({ method: 'GET', url: `/api/Patient/${id}/isbar` }),
-};
-
-// ─── VITAL SIGNS ──────────────────────────────────────────────────────────────
-
-export const vitalSignsApi = {
-  /**
-   * POST /api/Patient/vital
-   * @param {{
-   *   patientId, heartRate, oxygenLevel, temperature,
-   *   systolicPressure, diastolicPressure, respirationRate
-   * }} body
-   */
-  addVitalSigns: (body) =>
-    apiRequest({ method: 'POST', url: '/api/Patient/vital', data: body }),
-
-  /**
-   * PUT /api/Patient/vital/:id
-   * @param {number} id — vital sign record ID
-   * @param {{
-   *   heartRate, oxygenLevel, temperature,
-   *   systolicPressure, diastolicPressure, respirationRate
-   * }} body
-   */
-  updateVitalSigns: (id, body) =>
-    apiRequest({ method: 'PUT', url: `/api/Patient/vital/${id}`, data: body }),
-
-  /** GET /api/VitalSigns/latest/:patientId */
-  getLatestVitals: (patientId) =>
-    apiRequest({ method: 'GET', url: `/api/VitalSigns/latest/${patientId}` }),
-};
-
-// ─── MEDICAL REPORTS ──────────────────────────────────────────────────────────
-
-export const medicalReportApi = {
-  /**
-   * POST /api/MedicalReport
-   * Note: doctorId is inferred server-side from the Bearer token.
-   * @param {{ patientId, diagnosis, treatmentPlan, reportType: 1|2 }} body
-   */
-  addReport: (body) =>
-    apiRequest({ method: 'POST', url: '/api/MedicalReport', data: body }),
-
-  /** GET /api/MedicalReport/patient/:patientId */
-  getPatientReports: (patientId) =>
-    apiRequest({ method: 'GET', url: `/api/MedicalReport/patient/${patientId}` }),
-
-  /** GET /api/MedicalReport/my-reports */
-  getMyReports: () =>
-    apiRequest({ method: 'GET', url: '/api/MedicalReport/my-reports' }),
-
-  /** GET /api/MedicalReport/doctor/:doctorId */
-  getReportsByDoctor: (doctorId) =>
-    apiRequest({ method: 'GET', url: `/api/MedicalReport/doctor/${doctorId}` }),
-};
-
-// ─── ALERTS ───────────────────────────────────────────────────────────────────
-
-export const alertApi = {
-  /** GET /api/Alert/role/:role */
-  getAlertsByRole: (role = 'Nurse') =>
-    apiRequest({ method: 'GET', url: `/api/Alert/role/${role}` }),
-
-  /** GET /api/Alert/user/:userId */
-  getAlertsByUser: (userId) =>
-    apiRequest({ method: 'GET', url: `/api/Alert/user/${userId}` }),
-
-  /** POST /api/Alert/read/:alertId */
-  markAsRead: (alertId) =>
-    apiRequest({ method: 'POST', url: `/api/Alert/read/${alertId}` }),
-};
-
-// ─── MEDICATIONS ──────────────────────────────────────────────────────────────
-
-export const medicationApi = {
-  /** GET /api/Medication/patient/:patientId */
-  getPatientMedications: (patientId) =>
-    apiRequest({ method: 'GET', url: `/api/Medication/patient/${patientId}` }),
-
-  /** POST /api/Medication/administer */
-  administerMedication: (body) =>
-    apiRequest({ method: 'POST', url: '/api/Medication/administer', data: body }),
-};
-
-// ─── ISBAR ────────────────────────────────────────────────────────────────────
-
-export const isbarApi = {
-  /** GET /api/Patient/:patientId/isbar */
-  getIsbarReport: (patientId) =>
-    apiRequest({ method: 'GET', url: `/api/Patient/${patientId}/isbar` }),
-
-  /** POST /api/Patient/isbar */
-  generateIsbar: (isbarData) =>
-    apiRequest({ method: 'POST', url: '/api/Patient/isbar', data: isbarData }),
-};
-
-// ─── BEDS ─────────────────────────────────────────────────────────────────────
-
-export const bedApi = {
-  /** GET /api/Bed/available */
-  getAvailableBeds: () =>
-    apiRequest({ method: 'GET', url: '/api/Bed/available' }),
-
-  /** GET /api/Bed/occupied */
-  getOccupiedBeds: () =>
-    apiRequest({ method: 'GET', url: '/api/Bed/occupied' }),
-
-  /** GET /api/Bed/available/:departmentId */
-  getAvailableBedsByDepartment: (departmentId) =>
-    apiRequest({ method: 'GET', url: `/api/Bed/available/${departmentId}` }),
-
-  /**
-   * Check if a specific room is available in a department.
-   * @param {{ departmentId: number, roomNumber: string }} params
-   */
-  checkBedAvailability: async ({ departmentId, roomNumber }) => {
+    return patients.map((patientData) => {
+      const localVitals = localVitalsByPatientId?.[patientData.id] || null;
+      if (localVitals) {
+        const mergedVitals = { ...(patientData.lastVitals || patientData.vitals || {}), ...localVitals };
+        return {
+          ...patientData,
+          lastVitals: mergedVitals,
+          vitals: mergedVitals,
+          vitalSigns: [mergedVitals, ...(patientData.vitalSigns || [])],
+        };
+      }
+      return patientData;
+    });
+  },
+  getPatientById: async (id) => {
     try {
-      const response = await apiRequest({
-        method: 'GET',
-        url: `/api/Bed/available/${departmentId}`,
-      });
-      const beds = response.data || [];
-      const availableBed = beds.find((bed) => bed.roomNumber === roomNumber);
-      return {
-        available: !!availableBed,
-        bed: availableBed || null,
-        message: availableBed
-          ? `Bed ${availableBed.bedId} in ${roomNumber} is available`
-          : `No available bed in ${roomNumber}`,
-      };
+      const response = await api.get(`/Patient/${id}`);
+      let patientData = response.data;
+      
+      // Merge with local patient data (background from vitals entry)
+      const localPatientData = await getLocalPatientData(id);
+      if (localPatientData) {
+        patientData = { ...patientData, ...localPatientData };
+      }
+      
+      // Merge with local vitals data
+      const localVitals = await getLocalVitalsData(id);
+      if (localVitals) {
+        const mergedVitals = { ...(patientData.lastVitals || patientData.vitals || {}), ...localVitals };
+        patientData.lastVitals = mergedVitals;
+        patientData.vitals = mergedVitals;
+        patientData.vitalSigns = [mergedVitals, ...(patientData.vitalSigns || [])];
+      }
+      
+      // Merge with session localStorage data as fallback
+      const sessionPatients = JSON.parse(localStorage.getItem('session_patients') || '{}');
+      if (sessionPatients[id]) {
+        patientData = { ...patientData, ...sessionPatients[id] };
+      }
+      
+      return patientData;
     } catch (error) {
-      return { available: false, bed: null, message: `Error: ${error.message}` };
+      console.warn(`Error fetching patient ${id}, checking local storage:`, error);
+      
+      // Try to get from local sources if API fails
+      const localPatientData = await getLocalPatientData(id);
+      const localVitals = await getLocalVitalsData(id);
+      const sessionPatients = JSON.parse(localStorage.getItem('session_patients') || '{}');
+      
+      let fallbackData = { id, ...sessionPatients[id] };
+      if (localPatientData) fallbackData = { ...fallbackData, ...localPatientData };
+      if (localVitals) {
+        fallbackData.lastVitals = localVitals;
+        fallbackData.vitals = localVitals;
+        fallbackData.vitalSigns = [localVitals];
+      }
+      
+      if (Object.keys(fallbackData).length > 1) {
+        return fallbackData;
+      }
+      throw error;
     }
   },
-
-  /**
-   * POST /api/Bed/assign
-   * @param {{ patientId: number, departmentId: number }} body
-   */
-  assignBed: (body) =>
-    apiRequest({ method: 'POST', url: '/api/Bed/assign', data: body }),
+  getPatientsByDepartment: async (departmentId) => {
+    const response = await api.get(`/Patient/department/${departmentId}`);
+    return response.data;
+  },
 };
 
-// ─── DEPARTMENTS ──────────────────────────────────────────────────────────────
-
-export const departmentApi = {
-  /** GET /api/Department */
-  getDepartments: () =>
-    apiRequest({ method: 'GET', url: '/api/Department' }),
+export const alertApi = {
+  getAlertsByRole: async (role = 'Nurse') => {
+    const response = await api.get(`/Alert/role/${role}`);
+    return response.data;
+  },
+  getAlertsByUser: async (userId) => {
+    const response = await api.get(`/Alert/user/${userId}`);
+    return response.data;
+  },
+  markAsRead: async (alertId) => {
+    const response = await api.post(`/Alert/read/${alertId}`);
+    return response.data;
+  },
 };
 
-// ─── TASKS ────────────────────────────────────────────────────────────────────
-
-export const taskApi = {
-  /** GET /api/Task/role/:role */
-  getTasksByRole: (role) =>
-    apiRequest({ method: 'GET', url: `/api/Task/role/${role}` }),
-
-  /** GET /api/Task/user/:userId */
-  getTasksByUser: (userId) =>
-    apiRequest({ method: 'GET', url: `/api/Task/user/${userId}` }),
-
-  /** GET /api/Task/patient/:patientId */
-  getTasksByPatient: (patientId) =>
-    apiRequest({ method: 'GET', url: `/api/Task/patient/${patientId}` }),
-
-  /** POST /api/Task/complete/:taskId */
-  completeTask: (taskId) =>
-    apiRequest({ method: 'POST', url: `/api/Task/complete/${taskId}` }),
+// Local server API helper for persistent vitals storage (shared across all users)
+const saveLocalVitals = async (patientId, vitals) => {
+  // 1. Save to local server (persistent across all users)
+  try {
+    await axios.post(`${LOCAL_API_BASE_URL}/vitals`, { patientId, ...vitals });
+    console.log(`Vitals saved to local server for patient ${patientId}`);
+  } catch (e) {
+    console.warn('Local server save failed, falling back to localStorage', e);
+    // Fallback to localStorage
+    try {
+      const localData = JSON.parse(localStorage.getItem('session_vitals') || '{}');
+      localData[patientId] = vitals;
+      localStorage.setItem('session_vitals', JSON.stringify(localData));
+    } catch (e2) { console.error('Local storage error', e2); }
+  }
 };
 
-// ─── ANALYTICS ────────────────────────────────────────────────────────────────
-
-export const analyticsApi = {
-  /** GET /api/Analytics — top-level summary */
-  getAnalytics: () =>
-    apiRequest({ method: 'GET', url: '/api/Analytics' }),
-
-  // Executive
-  getDepartmentLoad: () =>
-    apiRequest({ method: 'GET', url: '/api/Analytics/executive/department-load' }),
-
-  /** @param {{ days?: number }} params */
-  getAlertTrend: (params) =>
-    apiRequest({ method: 'GET', url: '/api/Analytics/executive/alert-trend', params }),
-
-  getSlaCompliance: () =>
-    apiRequest({ method: 'GET', url: '/api/Analytics/executive/sla-compliance' }),
-
-  // Clinical
-  /** @param {{ department?: string, riskBand?: string }} params */
-  getRiskBoard: (params) =>
-    apiRequest({ method: 'GET', url: '/api/Analytics/clinical/risk-board', params }),
-
-  /** @param {number} patientId  @param {{ hours?: number }} params */
-  getVitalTrend: (patientId, params) =>
-    apiRequest({ method: 'GET', url: `/api/Analytics/clinical/vital-trend/${patientId}`, params }),
-
-  /** @param {{ limit?: number }} params */
-  getAlertFeed: (params) =>
-    apiRequest({ method: 'GET', url: '/api/Analytics/clinical/alert-feed', params }),
-
-  getEscalations: () =>
-    apiRequest({ method: 'GET', url: '/api/Analytics/clinical/escalations' }),
-
-  // Operations
-  /** @param {{ department?: string }} params */
-  getBedMap: (params) =>
-    apiRequest({ method: 'GET', url: '/api/Analytics/operations/bed-map', params }),
-
-  getPeakHours: () =>
-    apiRequest({ method: 'GET', url: '/api/Analytics/operations/peak-hours' }),
-
-  getBedShortageRisk: () =>
-    apiRequest({ method: 'GET', url: '/api/Analytics/operations/bed-shortage-risk' }),
+const getLocalVitals = async (patientId) => {
+  // 1. Try local server first (persistent across all users)
+  try {
+    const response = await axios.get(`${LOCAL_API_BASE_URL}/vitals/${patientId}`);
+    if (response.data) {
+      return response.data;
+    }
+  } catch (e) {
+    console.warn('Local server read failed, falling back to localStorage');
+  }
+  // 2. Fallback to localStorage
+  try {
+    const localData = JSON.parse(localStorage.getItem('session_vitals') || '{}');
+    return localData[patientId] || null;
+  } catch (e) { return null; }
 };
 
-// ─── TEST / ROLE GUARDS (dev use) ─────────────────────────────────────────────
-
-export const testApi = {
-  adminOnly: () => apiRequest({ method: 'GET', url: '/api/Test/admin-only' }),
-  doctorOnly: () => apiRequest({ method: 'GET', url: '/api/Test/doctor-only' }),
-  nurseOnly: () => apiRequest({ method: 'GET', url: '/api/Test/nurse-only' }),
-  multiRoles: () => apiRequest({ method: 'GET', url: '/api/Test/multi-roles' }),
+const getAllLocalVitals = async () => {
+  // Get all vitals from local server
+  try {
+    const response = await axios.get(`${LOCAL_API_BASE_URL}/vitals`);
+    return response.data;
+  } catch (e) {
+    console.warn('Local server read all failed, falling back to localStorage');
+    try {
+      return JSON.parse(localStorage.getItem('session_vitals') || '{}');
+    } catch (e2) { return {}; }
+  }
 };
 
-export default apiRequest;
+export const vitalSignsApi = {
+  getLatestVitals: async (patientId) => {
+    // Check local server first for persistent updates
+    const local = await getLocalVitals(patientId);
+    
+    try {
+      const response = await api.get(`/VitalSigns/latest/${patientId}`);
+      const apiData = response.data;
+      
+      // If we have local data, check if it's newer or should override
+      if (local && apiData) {
+        // Simple merge: if local exists, it might be the very latest update from this session
+        return { ...apiData, ...local };
+      }
+      return apiData || local;
+    } catch (err) {
+      console.warn('Vitals API failed, using local session data');
+      return local;
+    }
+  },
+  getAllVitals: async () => {
+    // Get all vitals from local server (for dashboard)
+    return await getAllLocalVitals();
+  },
+  addVitalSigns: async (vitalData) => {
+    // Save to local server immediately for persistent storage
+    await saveLocalVitals(vitalData.patientId, vitalData);
+    
+    // Also update the patient's background in local server for ISBAR and Care Report
+    if (vitalData.background && vitalData.patientId) {
+      try {
+        await axios.post(`${LOCAL_API_BASE_URL}/patients/${vitalData.patientId}`, {
+          background: vitalData.background
+        });
+      } catch (e) {
+        console.warn('Local server patient save failed, falling back to localStorage');
+      }
+      try {
+        const sessionPatients = JSON.parse(localStorage.getItem('session_patients') || '{}');
+        sessionPatients[vitalData.patientId] = {
+          ...(sessionPatients[vitalData.patientId] || {}),
+          background: vitalData.background
+        };
+        localStorage.setItem('session_patients', JSON.stringify(sessionPatients));
+      } catch (e) { console.error('Error saving session patient background', e); }
+    }
+    
+    try {
+      const response = await api.post('/VitalSigns', vitalData);
+      return response.data;
+    } catch (err) {
+      console.warn('API addVitalSigns failed, but saved to local server');
+      return { success: true, local: true };
+    }
+  },
+};
+
+export const medicalReportApi = {
+  getPatientReports: async (patientId) => {
+    try {
+      const response = await api.get(`/MedicalReport/patient/${patientId}`);
+      const apiReports = Array.isArray(response.data) ? response.data : [];
+      
+      // Merge with local session reports
+      const localData = JSON.parse(localStorage.getItem('session_reports') || '{}');
+      const localReports = localData[patientId] || [];
+      
+      return [...localReports, ...apiReports];
+    } catch (err) {
+      console.warn('MedicalReport API failed, using local session reports');
+      const localData = JSON.parse(localStorage.getItem('session_reports') || '{}');
+      return localData[patientId] || [];
+    }
+  },
+  addReport: async (reportData) => {
+    try {
+      const response = await api.post('/MedicalReport', reportData);
+      
+      // Save to local session cache for immediate UI update
+      const localData = JSON.parse(localStorage.getItem('session_reports') || '{}');
+      if (!localData[reportData.patientId]) localData[reportData.patientId] = [];
+      localData[reportData.patientId].unshift({
+        ...reportData,
+        id: Date.now(),
+        createdAt: new Date().toISOString()
+      });
+      localStorage.setItem('session_reports', JSON.stringify(localData));
+      
+      return response.data;
+    } catch (err) {
+      console.warn('API addReport failed, saving locally for session');
+      const localData = JSON.parse(localStorage.getItem('session_reports') || '{}');
+      if (!localData[reportData.patientId]) localData[reportData.patientId] = [];
+      localData[reportData.patientId].unshift({
+        ...reportData,
+        id: Date.now(),
+        createdAt: new Date().toISOString(),
+        local: true
+      });
+      localStorage.setItem('session_reports', JSON.stringify(localData));
+      return { success: true, local: true };
+    }
+  }
+};
+
+export const medicationApi = {
+  getPatientMedications: async (patientId) => {
+    try {
+      const response = await api.get(`/Medication/patient/${patientId}`);
+      return Array.isArray(response.data) ? response.data : [];
+    } catch (error) {
+      console.warn(`Error fetching medications for patient ${patientId}:`, error);
+      return [];
+    }
+  },
+  administerMedication: async (administrationData) => {
+    const response = await api.post('/Medication/administer', administrationData);
+    return response.data;
+  },
+};
+
+export const isbarApi = {
+  getIsbarReport: async (patientId) => {
+    try {
+      const response = await api.get(`/Patient/${patientId}/isbar`);
+      return response.data;
+    } catch (err) {
+      console.warn('Azure ISBAR API failed, might need manual generation');
+      throw err;
+    }
+  },
+  generateIsbar: async (isbarData) => {
+    // Attempting to use the new Azure backend if a POST endpoint exists, 
+    // otherwise falling back to the specialized AI service
+    try {
+      const response = await api.post('/Patient/isbar', isbarData);
+      return response.data;
+    } catch (err) {
+      console.warn('Azure POST ISBAR failed, falling back to AI service');
+      const response = await axios.post(
+        'https://ishms-api.istabrq.shop/api/v1/drug/isbar',
+        isbarData,
+        { headers: { 'Content-Type': 'application/json' } }
+      );
+      return response.data;
+    }
+  },
+};
+
+export const authApi = {
+  login: async (credentials) => {
+    const response = await api.post('/Auth/login', credentials);
+    if (response.data.token) setAuthToken(response.data.token);
+    return response.data;
+  },
+  register: async (userData) => {
+    const response = await api.post('/Auth/register', userData);
+    return response.data;
+  },
+  logout: () => setAuthToken(null),
+  setToken: (token) => setAuthToken(token),
+  getToken: () => getAuthToken(),
+};
+
+export default api;

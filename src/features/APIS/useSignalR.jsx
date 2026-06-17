@@ -21,7 +21,7 @@ import * as signalR from "@microsoft/signalr";
 // ─── CONFIG ───────────────────────────────────────────────────────────────────
 
 const MOCK_MODE = false; // ← flip to false when backend hub is ready
-const DISABLE_MODE = true;
+const DISABLE_MODE = false;
 
 const HUB_URL =
   import.meta.env?.VITE_HUB_URL ||

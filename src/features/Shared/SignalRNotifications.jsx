@@ -13,12 +13,36 @@ import {
   AlertTriangle,
   ArrowRight,
   Stethoscope,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { useSignalRContext } from "../APIS/useSignalR";
 import { useData } from "./IContext";
 
-/* ─── helpers ─── */
-const timeAgo = (date) => {
+/* ─── Live ticking timeAgo ───────────────────────────────────────────────────
+   Returns a string that re-renders every second automatically.             */
+function useLiveTimeAgo(date) {
+  const calc = (d) => {
+    const seconds = Math.floor((Date.now() - new Date(d)) / 1000);
+    if (seconds < 60) return `${seconds}s ago`;
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return days < 7 ? `${days}d ago` : new Date(d).toLocaleDateString();
+  };
+  const [label, setLabel] = useState(() => calc(date));
+  useEffect(() => {
+    setLabel(calc(date));
+    const id = setInterval(() => setLabel(calc(date)), 1000);
+    return () => clearInterval(id);
+  }, [date]);
+  return label;
+}
+
+/* Static timeAgo for places that don't need a hook (e.g. inside .reduce) */
+const timeAgoStatic = (date) => {
   const seconds = Math.floor((Date.now() - new Date(date)) / 1000);
   if (seconds < 60) return `${seconds}s ago`;
   const minutes = Math.floor(seconds / 60);
@@ -43,7 +67,97 @@ const formatDate = (date) => {
   });
 };
 
-/* ─── severity ─── */
+/* ─── Sound system ───────────────────────────────────────────────────────────
+   Plays pre-loaded audio files for different severity levels.             */
+function useSoundSystem() {
+  const [muted, setMuted] = useState(false);
+  const ctxRef = useRef(null);
+  const audioBuffersRef = useRef({});
+
+  const getCtx = useCallback(() => {
+    if (!ctxRef.current) {
+      ctxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    return ctxRef.current;
+  }, []);
+
+  // Function to load an audio file
+  const loadAudio = useCallback(
+    async (url, name) => {
+      try {
+        const ctx = getCtx();
+        const response = await fetch(url);
+        const arrayBuffer = await response.arrayBuffer();
+        const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+        audioBuffersRef.current[name] = audioBuffer;
+        console.log(`Audio file ${name} loaded successfully.`);
+      } catch (error) {
+        console.error(`Error loading audio file ${name} from ${url}:`, error);
+      }
+    },
+    [getCtx],
+  );
+
+  // Load all necessary audio files on component mount
+  useEffect(() => {
+    // Replace with your actual audio file paths
+    loadAudio("/sounds/notification.mp3", "critical");
+    loadAudio("/sounds/notification.mp3", "warning");
+    loadAudio("/sounds/notification.mp3", "info");
+  }, [loadAudio]);
+
+  // Function to play a loaded audio buffer
+  const playSound = useCallback(
+    (name, volume = 1) => {
+      if (muted) return;
+      const audioBuffer = audioBuffersRef.current[name];
+      if (!audioBuffer) {
+        console.warn(`Audio buffer for ${name} not loaded.`);
+        return;
+      }
+
+      try {
+        const ctx = getCtx();
+        const source = ctx.createBufferSource();
+        const gainNode = ctx.createGain();
+
+        source.buffer = audioBuffer;
+        source.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        gainNode.gain.value = volume;
+        source.start(0);
+      } catch (error) {
+        console.error(`Error playing sound ${name}:`, error);
+      }
+    },
+    [muted, getCtx],
+  );
+
+  const playCritical = useCallback(() => {
+    playSound("critical", 0.6);
+  }, [playSound]);
+
+  const playWarning = useCallback(() => {
+    playSound("warning", 0.6);
+  }, [playSound]);
+
+  const playInfo = useCallback(() => {
+    playSound("info", 0.6);
+  }, [playSound]);
+
+  const playForSeverity = useCallback(
+    (severity) => {
+      const s = severity?.toLowerCase();
+      if (s === "critical") playCritical();
+      else if (s === "warning") playWarning();
+      else playInfo();
+    },
+    [playCritical, playWarning, playInfo],
+  );
+
+  return { muted, setMuted, playForSeverity };
+}
+/* ─── Severity config ────────────────────────────────────────────────────── */
 const getSev = (severity) => {
   const s = severity?.toLowerCase();
   if (s === "critical")
@@ -77,7 +191,7 @@ const getSev = (severity) => {
   };
 };
 
-/* ─── navBottom hook ─── */
+/* ─── useNavbarBottom ────────────────────────────────────────────────────── */
 function useNavbarBottom(headerRef) {
   const [navBottom, setNavBottom] = useState(64);
   useEffect(() => {
@@ -98,7 +212,7 @@ function useNavbarBottom(headerRef) {
   return navBottom;
 }
 
-/* ─── ConnectionPill ─── */
+/* ─── ConnectionPill ─────────────────────────────────────────────────────── */
 function ConnectionPill({ status }) {
   const map = {
     connected: {
@@ -146,8 +260,37 @@ function ConnectionPill({ status }) {
   );
 }
 
-/* ─── Toast ─── */
+/* ─── MuteButton ─────────────────────────────────────────────────────────── */
+function MuteButton({ muted, onToggle }) {
+  return (
+    <button
+      onClick={onToggle}
+      title={muted ? "Unmute notifications" : "Mute notifications"}
+      className={`w-6 h-6 rounded-lg flex items-center justify-center transition-colors ${
+        muted
+          ? "bg-slate-100 text-slate-400 hover:text-slate-600"
+          : "hover:bg-slate-100 text-slate-400 hover:text-slate-600"
+      }`}
+    >
+      {muted ? <VolumeX size={12} /> : <Volume2 size={12} />}
+    </button>
+  );
+}
+
+/* ─── LiveTime — ticking timestamp component ─────────────────────────────── */
+function LiveTime({ date }) {
+  const label = useLiveTimeAgo(date);
+  return (
+    <span className="flex items-center gap-1">
+      <Clock size={9} />
+      {label}
+    </span>
+  );
+}
+
+/* ─── Toast ──────────────────────────────────────────────────────────────── */
 function Toast({ event, onDismiss, isNew }) {
+  const NotificationFloatTimer = 6000;
   const [phase, setPhase] = useState("enter");
   const sev = getSev(event.severity);
   const isCritical = event.severity?.toLowerCase() === "critical";
@@ -157,7 +300,7 @@ function Toast({ event, onDismiss, isNew }) {
     const t2 = setTimeout(() => {
       setPhase("exit");
       setTimeout(() => onDismiss(event.id), 280);
-    }, 6000);
+    }, NotificationFloatTimer);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
@@ -167,7 +310,7 @@ function Toast({ event, onDismiss, isNew }) {
   const style = {
     transform:
       phase === "enter"
-        ? "translateY(-100%)"
+        ? "translateY(100%)"
         : phase === "exit"
           ? "translateX(110%)"
           : "translate(0,0)",
@@ -206,10 +349,7 @@ function Toast({ event, onDismiss, isNew }) {
             {event.message}
           </p>
           <div className="flex items-center gap-2 mt-1 text-[10px] text-slate-400">
-            <span className="flex items-center gap-1">
-              <Clock size={9} />
-              {timeAgo(event.timestamp || event.createdAt)}
-            </span>
+            <LiveTime date={event.timestamp || event.createdAt} />
             {event.targetUserName && (
               <span className="flex items-center gap-1 border-l border-slate-200 pl-2">
                 <User size={9} />
@@ -238,12 +378,10 @@ function Toast({ event, onDismiss, isNew }) {
   );
 }
 
-function ToastStack({ toasts, onDismiss, navBottom, newMessageIds }) {
+/* ─── ToastStack — bottom-right ──────────────────────────────────────────── */
+function ToastStack({ toasts, onDismiss, newMessageIds }) {
   return createPortal(
-    <div
-      className="fixed right-4 z-[9999] flex flex-col gap-2 items-end pointer-events-none"
-      style={{ top: navBottom + 10 }}
-    >
+    <div className="fixed bottom-4 right-4 z-[9999] flex flex-col-reverse gap-2 items-end pointer-events-none">
       {toasts.map((e) => (
         <Toast
           key={e.id}
@@ -257,7 +395,7 @@ function ToastStack({ toasts, onDismiss, navBottom, newMessageIds }) {
   );
 }
 
-/* ─── NotifItem ─── */
+/* ─── NotifItem ──────────────────────────────────────────────────────────── */
 function NotifItem({ event, onDismiss, onRead, isNew, showDivider }) {
   const sev = getSev(event.severity);
   const isRead = event.isRead || event.read;
@@ -278,13 +416,11 @@ function NotifItem({ event, onDismiss, onRead, isNew, showDivider }) {
         onClick={() => !isRead && onRead(event.id)}
         className="group relative flex items-start gap-2.5 px-3 py-2.5 cursor-pointer hover:bg-slate-50 transition-colors duration-100"
       >
-        {/* colored icon box — only colored element, no row bg */}
         <div
           className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 text-[10px] font-bold ${sev.iconBg} ${sev.iconColor}`}
         >
           {isNormal ? initials : <sev.Icon size={14} />}
         </div>
-
         <div className="flex-1 min-w-0">
           <div className="flex items-center justify-between gap-1 mb-0.5">
             <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
@@ -306,7 +442,7 @@ function NotifItem({ event, onDismiss, onRead, isNew, showDivider }) {
             </div>
             <div className="flex items-center gap-1.5 flex-shrink-0">
               <span className="text-[10px] text-slate-400 whitespace-nowrap">
-                {timeAgo(event.timestamp || event.createdAt)}
+                <LiveTime date={event.timestamp || event.createdAt} />
               </span>
               {!isRead && (
                 <span
@@ -327,7 +463,6 @@ function NotifItem({ event, onDismiss, onRead, isNew, showDivider }) {
             </span>
           )}
         </div>
-
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -344,7 +479,7 @@ function NotifItem({ event, onDismiss, onRead, isNew, showDivider }) {
   );
 }
 
-/* ─── NotificationTooltip ─── */
+/* ─── NotificationTooltip ────────────────────────────────────────────────── */
 const LIMIT = 10;
 
 function NotificationTooltip({
@@ -359,6 +494,8 @@ function NotificationTooltip({
   newMessageIds,
   onViewAll,
   navBottom,
+  muted,
+  onToggleMute,
 }) {
   const ref = useRef(null);
 
@@ -392,7 +529,6 @@ function NotificationTooltip({
     return acc;
   }, {});
 
-  // anchor right edge of tooltip to right edge of bell button
   const bellRect = bellRef?.current?.getBoundingClientRect();
   const rightOffset = bellRect ? window.innerWidth - bellRect.right : 16;
 
@@ -427,12 +563,15 @@ function NotificationTooltip({
               </span>
             )}
           </div>
-          <button
-            onClick={onClose}
-            className="w-6 h-6 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-colors"
-          >
-            <X size={13} />
-          </button>
+          <div className="flex items-center gap-1">
+            <MuteButton muted={muted} onToggle={onToggleMute} />
+            <button
+              onClick={onClose}
+              className="w-6 h-6 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 transition-colors"
+            >
+              <X size={13} />
+            </button>
+          </div>
         </div>
 
         {/* list */}
@@ -498,23 +637,18 @@ function NotificationTooltip({
   );
 }
 
-/* ─── BellButton ─── */
+/* ─── BellButton ─────────────────────────────────────────────────────────── */
 const BellButton = React.forwardRef(
   ({ unreadCount, alerts = [], status, onClick, isOpen }, ref) => {
     const hasUnread = unreadCount > 0;
-    const hasAlerts = alerts.length > 0;
-
     const badgeCount = hasUnread ? unreadCount : alerts.length;
-
     const badgeColor = hasUnread ? "bg-red-500" : "bg-yellow-500";
 
     return (
       <button
         ref={ref}
         onClick={onClick}
-        aria-label={`Notifications${
-          badgeCount > 0 ? `, ${badgeCount} unread` : ""
-        }`}
+        aria-label={`Notifications${badgeCount > 0 ? `, ${badgeCount} unread` : ""}`}
         className={`relative w-9 h-9 rounded-xl border flex items-center justify-center transition-all duration-150 ${
           isOpen
             ? "bg-blue-600 border-blue-600 text-white shadow-md shadow-blue-200"
@@ -526,12 +660,9 @@ const BellButton = React.forwardRef(
           strokeWidth={2}
           className={isOpen ? "fill-white/20" : ""}
         />
-
-        {(hasUnread || hasAlerts) && (
+        {(hasUnread || alerts.length > 0) && (
           <span
-            className={`absolute -top-1.5 -right-1.5 min-w-[15px] h-[15px] px-1 ${badgeColor} border-[2px] border-white rounded-full flex items-center justify-center text-[9px] font-bold text-white transition-transform ${
-              isOpen ? "scale-0" : "scale-100"
-            }`}
+            className={`absolute -top-1.5 -right-1.5 min-w-[15px] h-[15px] px-1 ${badgeColor} border-[2px] border-white rounded-full flex items-center justify-center text-[9px] font-bold text-white transition-transform ${isOpen ? "scale-0" : "scale-100"}`}
           >
             {badgeCount > 9 ? "9+" : badgeCount}
           </span>
@@ -540,14 +671,14 @@ const BellButton = React.forwardRef(
     );
   },
 );
-
 BellButton.displayName = "BellButton";
 
-/* ─── Main ─── */
+/* ─── Main ───────────────────────────────────────────────────────────────── */
 export default function SignalRNotifications({ headerRef, onViewAll }) {
   const { status, events, unreadCount, clearEvent, dismissEvent } =
     useSignalRContext();
   const { alerts } = useData();
+  const { muted, setMuted, playForSeverity } = useSoundSystem();
 
   const navBottom = useNavbarBottom(headerRef);
   const bellRef = useRef(null);
@@ -564,6 +695,17 @@ export default function SignalRNotifications({ headerRef, onViewAll }) {
   useEffect(() => {
     if (events.length > prevLen.current) {
       const newEvs = events.slice(0, events.length - prevLen.current);
+
+      // Play sound for the highest-severity new event
+      const severityRank = { critical: 3, warning: 2, info: 1 };
+      const topSev = newEvs.reduce((best, ev) => {
+        return (severityRank[ev.severity?.toLowerCase()] ?? 1) >
+          (severityRank[best?.toLowerCase()] ?? 1)
+          ? ev.severity
+          : best;
+      }, "info");
+      playForSeverity(topSev);
+
       setNewMessageIds((p) => {
         const s = new Set(p);
         newEvs.forEach((e) => s.add(e.id));
@@ -579,7 +721,7 @@ export default function SignalRNotifications({ headerRef, onViewAll }) {
       }, 10000);
     }
     prevLen.current = events.length;
-  }, [events, open]);
+  }, [events, open, playForSeverity]);
 
   const dismissToast = useCallback(
     (id) => {
@@ -611,11 +753,12 @@ export default function SignalRNotifications({ headerRef, onViewAll }) {
         newMessageIds={newMessageIds}
         onViewAll={onViewAll}
         navBottom={navBottom}
+        muted={muted}
+        onToggleMute={() => setMuted((m) => !m)}
       />
       <ToastStack
         toasts={toastQueue}
         onDismiss={dismissToast}
-        navBottom={navBottom}
         newMessageIds={newMessageIds}
       />
     </>

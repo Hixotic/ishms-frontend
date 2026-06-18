@@ -206,20 +206,19 @@ const DashboardOverview = ({
   });
 
   const admittedPatients = filteredPatients.filter((p) => p.bedId);
-  const todaysDischarges = filteredPatients.filter(
-    (p) => p.status === "Discharged",
-  ).length;
   const openAlerts = alerts.length;
-
-  const dischargePatients = filteredPatients
-    .filter((p) => p.medicalClearance === true || p.status === "Stable")
-    .slice(0, 3);
+  const dischargePatients = patients
+    .filter((p) => p.flowStatus === "Stable")
+    .sort((a, b) => {
+      const left = new Date(a.admittedAt).getTime() || 0;
+      const right = new Date(b.admittedAt).getTime() || 0;
+      return left - right;
+    });
 
   const handleViewPatientDetails = (patient) => {
     setSelectedPatient(patient);
     setShowPatientModal(true);
   };
-
   if (loading && patients.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-20 animate-pulse">
@@ -243,8 +242,8 @@ const DashboardOverview = ({
           color="#3b82f6"
         />
         <KpiCard
-          label="Today's Discharges"
-          value={todaysDischarges}
+          label="Ready To Discharge"
+          value={dischargePatients.length}
           sub="Medically cleared"
           icon={DoorOpen}
           color="#10b981"
@@ -373,14 +372,16 @@ const DashboardOverview = ({
 
             <div className="space-y-1">
               {dischargePatients.length > 0 ? (
-                dischargePatients.map((patient) => (
-                  <DischargeRow
-                    key={patient.id}
-                    patient={patient}
-                    onDischarge={() => handleDischarge(patient)}
-                    onViewDetails={() => handleViewPatientDetails(patient)}
-                  />
-                ))
+                dischargePatients
+                  .slice(0, 3)
+                  .map((patient) => (
+                    <DischargeRow
+                      key={patient.id}
+                      patient={patient}
+                      onDischarge={() => handleDischarge(patient)}
+                      onViewDetails={() => handleViewPatientDetails(patient)}
+                    />
+                  ))
               ) : (
                 <div className="py-8 text-center bg-slate-50 rounded-3xl border border-dashed border-slate-200">
                   <CheckCircle
@@ -392,6 +393,12 @@ const DashboardOverview = ({
                   </p>
                 </div>
               )}
+              <button
+                className="w-full mt-6 py-4 rounded-2xl border border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50 hover:text-blue-600 transition-all duration-300 flex items-center justify-center gap-2"
+                onClick={() => handleQuickAction("discharge")}
+              >
+                Discharge Monitor <ArrowRight size={14} />
+              </button>
             </div>
           </div>
         </div>

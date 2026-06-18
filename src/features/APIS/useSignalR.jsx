@@ -212,7 +212,7 @@ export function useSignalR(token, { maxEvents = 50 } = {}) {
         });
 
         index++;
-      }, 60000);
+      }, 10000);
 
       return () => {
         clearTimeout(firstTimeout);

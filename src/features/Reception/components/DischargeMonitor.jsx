@@ -34,6 +34,7 @@ const DischargeMonitor = () => {
     alertsLoading,
     isDoctor,
     isReceptionist,
+    refreshData,
   } = useData();
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [isDischarging, setIsDischarging] = useState(false);
@@ -87,7 +88,7 @@ const DischargeMonitor = () => {
       await new Promise((resolve) => setTimeout(resolve, 800));
 
       await dischargePatient(patientId);
-      await refreshPatients?.();
+      await refreshData?.();
 
       setDischargeSuccess(
         selectedPatient.fullName || selectedPatient.patientName || "Patient",

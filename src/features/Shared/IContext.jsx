@@ -56,12 +56,12 @@ export function IProvider({ children }) {
   /**
    * patchPatient
    *
-   * Merges a partial fields object into the matching patient entry in the list.
-   * Zero API calls — instant, no flicker.
-   * The full patient profile page handles its own fetch when opened.
+   * Merges partial fields into the matching patient in the list by p.id.
+   * Zero API calls — instant in-memory update.
+   * Patient shape reference: { id, fullName, status, newsScore, flowStatus, ... }
    */
   const patchPatient = useCallback((patientId, fields) => {
-    if (!patientId) return;
+    if (patientId == null) return;
     setPatients((prev) =>
       prev.map((p) => (p.id === patientId ? { ...p, ...fields } : p)),
     );
@@ -71,49 +71,49 @@ export function IProvider({ children }) {
    * handleSignalREvent
    *
    * Dispatcher passed to <SignalRProvider onEvent={handleSignalREvent}>.
-   * Each case patches only the fields the payload actually carries —
-   * everything else on the patient object is left untouched.
+   * Patches only the exact fields each payload carries against the confirmed
+   * patient shape — p.id, p.flowStatus, p.newsScore, p.status.
    *
-   * ReceiveStatusUpdate  → patch flowStatus (+ remove if Discharged)
-   * ReceiveNewsUpdate    → patch newsScore and status
-   * ReceiveTask          → no list-level field to patch; tasks live on the profile page
-   * ReceiveAlert         → notification handled by useSignalR; nothing to patch here
+   * ReceiveStatusUpdate  → patch flowStatus (remove patient if "Discharged")
+   * ReceiveNewsUpdate    → patch newsScore and/or status
+   * ReceiveTask          → nothing on the list card changes; profile fetches fresh on open
+   * ReceiveAlert         → notification handled by useSignalR; no list patch needed
    * ReceiveMedicalReport → commented out, no use yet
    */
   const handleSignalREvent = useCallback(
     (eventName, data) => {
+      // patientId in the SignalR payload maps to p.id in the patient object
       const id = data?.patientId;
 
       switch (eventName) {
         case "ReceiveStatusUpdate": {
-          const { newStatus } = data ?? {};
+          const newStatus = data?.newStatus;
           if (!newStatus) break;
           if (newStatus === "Discharged") {
-            // Remove discharged patients from the list entirely.
             setPatients((prev) => prev.filter((p) => p.id !== id));
           } else {
+            // newStatus maps to p.flowStatus (e.g. "ObservationalStable", "WaitingDoctor")
             patchPatient(id, { flowStatus: newStatus });
           }
           break;
         }
 
         case "ReceiveNewsUpdate": {
-          const { newsScore, status } = data ?? {};
-          // Only patch the fields that are present in the payload.
           const patch = {};
-          if (newsScore !== undefined) patch.newsScore = newsScore;
-          if (status !== undefined) patch.status = status;
-          patchPatient(id, patch);
+          // newsScore → p.newsScore (number, e.g. 0, 5, 8)
+          if (data?.newsScore !== undefined) patch.newsScore = data.newsScore;
+          // status    → p.status    (string, e.g. "Stable", "Critical")
+          if (data?.status !== undefined) patch.status = data.status;
+          if (Object.keys(patch).length) patchPatient(id, patch);
           break;
         }
 
         case "ReceiveTask":
-          // Tasks are fetched fresh when the profile page opens — nothing to patch
-          // at the list level since the patient card doesn't show task details.
+          // No field on the patient list card reflects tasks — nothing to patch.
           break;
 
         case "ReceiveAlert":
-          // Notification already stored by useSignalR. Nothing to patch in the list.
+          // useSignalR already stored the notification. No list patch needed.
           break;
 
         // ReceiveMedicalReport — no use yet, wired for later.
@@ -134,9 +134,9 @@ export function IProvider({ children }) {
     const term = searchTerm.toLowerCase();
     return patients
       .filter((p) => {
-        const name = (p.name || p.fullName || "").toLowerCase();
-        const Pid = (p.patientId || "").toLowerCase();
-        return name.includes(term) || Pid.includes(term);
+        const name = (p.fullName || "").toLowerCase();
+        const pid = String(p.id || "");
+        return name.includes(term) || pid.includes(term);
       })
       .slice(0, 5);
   }, [searchTerm, patients]);

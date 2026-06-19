@@ -4,6 +4,7 @@ import React, {
   useState,
   useEffect,
   useMemo,
+  useCallback,
 } from "react";
 import { useAuth } from "../Auth/AuthProvider";
 import { getPatients, getAlertsByRole } from "../APIS/apiHandler";
@@ -46,15 +47,88 @@ export function IProvider({ children }) {
     }
   };
 
-  // Fetch data on mount and when role changes
   useEffect(() => {
     fetchData();
   }, [role]);
 
+  // ─── SignalR event handler ─────────────────────────────────────────────────
+
   /**
-   * Filter patients based on search term
-   * Searches by name, fullName, and MRN
+   * patchPatient
+   *
+   * Merges a partial fields object into the matching patient entry in the list.
+   * Zero API calls — instant, no flicker.
+   * The full patient profile page handles its own fetch when opened.
    */
+  const patchPatient = useCallback((patientId, fields) => {
+    if (!patientId) return;
+    setPatients((prev) =>
+      prev.map((p) => (p.id === patientId ? { ...p, ...fields } : p)),
+    );
+  }, []);
+
+  /**
+   * handleSignalREvent
+   *
+   * Dispatcher passed to <SignalRProvider onEvent={handleSignalREvent}>.
+   * Each case patches only the fields the payload actually carries —
+   * everything else on the patient object is left untouched.
+   *
+   * ReceiveStatusUpdate  → patch flowStatus (+ remove if Discharged)
+   * ReceiveNewsUpdate    → patch newsScore and status
+   * ReceiveTask          → no list-level field to patch; tasks live on the profile page
+   * ReceiveAlert         → notification handled by useSignalR; nothing to patch here
+   * ReceiveMedicalReport → commented out, no use yet
+   */
+  const handleSignalREvent = useCallback(
+    (eventName, data) => {
+      const id = data?.patientId;
+
+      switch (eventName) {
+        case "ReceiveStatusUpdate": {
+          const { newStatus } = data ?? {};
+          if (!newStatus) break;
+          if (newStatus === "Discharged") {
+            // Remove discharged patients from the list entirely.
+            setPatients((prev) => prev.filter((p) => p.id !== id));
+          } else {
+            patchPatient(id, { flowStatus: newStatus });
+          }
+          break;
+        }
+
+        case "ReceiveNewsUpdate": {
+          const { newsScore, status } = data ?? {};
+          // Only patch the fields that are present in the payload.
+          const patch = {};
+          if (newsScore !== undefined) patch.newsScore = newsScore;
+          if (status !== undefined) patch.status = status;
+          patchPatient(id, patch);
+          break;
+        }
+
+        case "ReceiveTask":
+          // Tasks are fetched fresh when the profile page opens — nothing to patch
+          // at the list level since the patient card doesn't show task details.
+          break;
+
+        case "ReceiveAlert":
+          // Notification already stored by useSignalR. Nothing to patch in the list.
+          break;
+
+        // ReceiveMedicalReport — no use yet, wired for later.
+        // case "ReceiveMedicalReport":
+        //   break;
+
+        default:
+          break;
+      }
+    },
+    [patchPatient],
+  );
+
+  // ─── Derived / helper selectors ────────────────────────────────────────────
+
   const filteredPatients = useMemo(() => {
     if (!searchTerm) return [];
     const term = searchTerm.toLowerCase();
@@ -67,40 +141,18 @@ export function IProvider({ children }) {
       .slice(0, 5);
   }, [searchTerm, patients]);
 
-  /**
-   * Get patients filtered by status
-   * Useful for dashboard cards showing critical/unstable patients
-   */
   const getPatientsByStatus = (status) => {
     if (status === "All") return patients;
     return patients.filter((p) => p.status === status);
   };
 
-  /**
-   * Get a single patient by ID
-   * Useful when you need details of one patient
-   */
-  const getPatientById = (patientId) => {
-    return patients.find((p) => p.id === patientId);
-  };
+  const getPatientById = (patientId) =>
+    patients.find((p) => p.id === patientId);
 
-  /**
-   * Get alerts filtered by type
-   * Useful for categorizing alerts
-   */
-  const getAlertsByType = (type) => {
-    return alerts.filter((a) => a.type === type);
-  };
+  const getAlertsByType = (type) => alerts.filter((a) => a.type === type);
 
-  /**
-   * Get the latest N alerts
-   * Default is 5 (used by notification panel)
-   */
-  const getLatestAlerts = (count = 5) => {
-    return alerts.slice(0, count);
-  };
+  const getLatestAlerts = (count = 5) => alerts.slice(0, count);
 
-  // Context value object with all available data and functions
   const contextValue = {
     // Search
     searchTerm,
@@ -124,8 +176,11 @@ export function IProvider({ children }) {
     isDoctor,
     isReceptionist,
 
-    // Refresh function
+    // Refresh (full re-fetch — use sparingly)
     refreshData: fetchData,
+
+    // SignalR dispatcher — pass to <SignalRProvider onEvent={handleSignalREvent}>
+    handleSignalREvent,
   };
 
   return <IContext.Provider value={contextValue}>{children}</IContext.Provider>;
@@ -133,8 +188,6 @@ export function IProvider({ children }) {
 
 /**
  * Custom Hook: useData
- *
- * Use this hook in any component to access hospital data
  *
  * Examples:
  *
@@ -155,14 +208,13 @@ export function IProvider({ children }) {
  * 5. Use search:
  *    const { searchTerm, setSearchTerm, filteredPatients } = useData();
  *
- * 6. Refresh data:
+ * 6. Refresh all data manually:
  *    const { refreshData } = useData();
  *    await refreshData();
  */
 export const useData = () => {
   const ctx = useContext(IContext);
   if (!ctx) {
-    // Return safe defaults instead of throwing
     return { patients: [], isReceptionist: false, isDoctor: false };
   }
   return ctx;

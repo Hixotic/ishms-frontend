@@ -116,16 +116,31 @@ export default function PatientCard({ patient, onClick }) {
   }
 
   const safeRecord = record || {};
+
+  // Handle bloodPressure as "120/80" string
+  let systolic = safeRecord.SystolicPressure ?? safeRecord.systolicPressure ?? null;
+  let diastolic = safeRecord.DiastolicPressure ?? safeRecord.diastolicPressure ?? null;
+  if ((!systolic || !diastolic) && safeRecord.bloodPressure) {
+    const parts = String(safeRecord.bloodPressure).split("/");
+    if (parts.length === 2) {
+      systolic = systolic ?? parseFloat(parts[0]);
+      diastolic = diastolic ?? parseFloat(parts[1]);
+    }
+  }
+
   const vitals = {
     heartRate: safeRecord.HeartRate ?? safeRecord.heartRate ?? "N/A",
-    systolicPressure:
-      safeRecord.SystolicPressure ?? safeRecord.systolicPressure ?? "N/A",
-    diastolicPressure:
-      safeRecord.DiastolicPressure ?? safeRecord.diastolicPressure ?? "N/A",
-    oxygenLevel: safeRecord.OxygenLevel ?? safeRecord.oxygenLevel ?? "N/A",
+    systolicPressure: systolic ?? "N/A",
+    diastolicPressure: diastolic ?? "N/A",
+    // Support oxygenLevel AND oxygenSaturation
+    oxygenLevel:
+      safeRecord.OxygenLevel ?? safeRecord.oxygenLevel ??
+      safeRecord.oxygenSaturation ?? "N/A",
     temperature: safeRecord.Temperature ?? safeRecord.temperature ?? "N/A",
+    // Support respirationRate AND respiratoryRate
     respirationRate:
-      safeRecord.RespirationRate ?? safeRecord.respirationRate ?? "N/A",
+      safeRecord.RespirationRate ?? safeRecord.respirationRate ??
+      safeRecord.respiratoryRate ?? "N/A",
     updatedAt:
       safeRecord.timestamp ||
       safeRecord.RecordedAt ||

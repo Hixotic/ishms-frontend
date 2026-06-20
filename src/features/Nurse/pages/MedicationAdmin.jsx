@@ -33,6 +33,7 @@ export default function MedicationAdmin() {
         // Combine with medications in patient object as fallback
         const combinedMedications = [
           ...(medications || []),
+          ...(patientData?.activeMedications || []),
           ...(patientData?.medications || []),
         ];
 

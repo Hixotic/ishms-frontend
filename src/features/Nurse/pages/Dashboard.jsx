@@ -1,33 +1,29 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { patientApi } from "../lib/api";
-import * as mockData from "../lib/mockData";
-import PatientCard from "../components/PatientCard";
-import { Search, AlertCircle, RefreshCw } from "lucide-react";
+import { useQuery } from '@tanstack/react-query';
+import { AlertCircle, RefreshCw, Search } from 'lucide-react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import PatientCard from '../components/PatientCard';
+import { patientApi } from '../lib/api';
+import * as mockData from '../lib/mockData';
 
 export default function NurseDashboard() {
   const navigate = useNavigate();
-  const [selectedStatus, setSelectedStatus] = useState("all");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedStatus, setSelectedStatus] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const normalizeStatus = (status = "") => {
-    const normalized = String(status).trim().toLowerCase().replace(/\s+/g, "_");
-    if (["stable", "critical", "needs_care"].includes(normalized))
-      return normalized;
-    return "unknown";
+  const normalizeStatus = (status = '') => {
+    const normalized = String(status).trim().toLowerCase().replace(/\s+/g, '_');
+    if (['stable', 'critical', 'needs_care'].includes(normalized)) return normalized;
+    return 'unknown';
   };
 
   const normalizePatient = (patient) => {
-    const vitals =
-      patient.latestVitalSign || patient.lastVitals || patient.vitals || null;
+    const vitals = patient.latestVitalSign || patient.lastVitals || patient.vitals || null;
     return {
       ...patient,
       normalizedStatus: normalizeStatus(patient.status),
-      name: patient.name || patient.fullName || "Unknown Patient",
-      roomNumber:
-        patient.roomNumber ||
-        (patient.bedId != null ? String(patient.bedId) : ""),
+      name: patient.name || patient.fullName || 'Unknown Patient',
+      roomNumber: patient.roomNumber || (patient.bedId != null ? String(patient.bedId) : ''),
       lastVitals: vitals,
       vitals,
       vitalSigns: vitals ? [vitals] : [],
@@ -41,7 +37,7 @@ export default function NurseDashboard() {
     refetch,
     isFetching,
   } = useQuery({
-    queryKey: ["patients"],
+    queryKey: ['patients'],
     queryFn: async () => {
       try {
         let data = await patientApi.getAllPatients();
@@ -50,7 +46,7 @@ export default function NurseDashboard() {
         }
         return data.map(normalizePatient);
       } catch (err) {
-        console.error("Error fetching patients:", err);
+        console.error('Error fetching patients:', err);
         return mockData.mockPatients.map(normalizePatient);
       }
     },
@@ -58,10 +54,23 @@ export default function NurseDashboard() {
     gcTime: 1000 * 60 * 10, // 10 minutes
   });
 
+  const stableCount = patients.filter((p) => p.normalizedStatus === 'stable').length;
+  const criticalCount = patients.filter((p) => p.normalizedStatus === 'critical').length;
+  const hasStableOrCritical = stableCount > 0 || criticalCount > 0;
+  // Always count ALL patients that are not stable and not critical (includes needs_care + unknown + any other status)
+  const needsCareCount = patients.filter(
+    (p) => p.normalizedStatus !== 'stable' && p.normalizedStatus !== 'critical'
+  ).length;
+
   const getFilteredPatients = () => {
     let filtered = patients;
-    if (selectedStatus !== "all") {
-      filtered = filtered.filter((p) => p.normalizedStatus === selectedStatus);
+    if (selectedStatus !== 'all') {
+      if (selectedStatus === 'needs_care') {
+        // Always show all non-stable, non-critical patients when Needs Care is selected
+        filtered = filtered.filter((p) => p.normalizedStatus !== 'stable' && p.normalizedStatus !== 'critical');
+      } else {
+        filtered = filtered.filter((p) => p.normalizedStatus === selectedStatus);
+      }
     }
     if (searchTerm) {
       const query = searchTerm.toLowerCase();
@@ -71,7 +80,7 @@ export default function NurseDashboard() {
           (p.fullName && p.fullName.toLowerCase().includes(query)) ||
           String(p.id).toLowerCase().includes(query) ||
           String(p.roomNumber).toLowerCase().includes(query) ||
-          String(p.bedId).toLowerCase().includes(query),
+          String(p.bedId).toLowerCase().includes(query)
       );
     }
     const statusOrder = { critical: 0, needs_care: 1, stable: 2, unknown: 3 };
@@ -84,71 +93,54 @@ export default function NurseDashboard() {
   };
 
   const filteredPatients = getFilteredPatients();
-  const stableCount = patients.filter(
-    (p) => p.normalizedStatus === "stable",
-  ).length;
-  const criticalCount = patients.filter(
-    (p) => p.normalizedStatus === "critical",
-  ).length;
-  const needsCareCount = patients.filter(
-    (p) => p.normalizedStatus === "needs_care",
-  ).length;
 
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {isError && (
           <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4 mb-8 flex items-center gap-3">
-            <AlertCircle
-              className="text-amber-600 dark:text-amber-400"
-              size={20}
-            />
+            <AlertCircle className="text-amber-600 dark:text-amber-400" size={20} />
             <p className="text-amber-800 dark:text-amber-200">
               Failed to load live patient data. Showing cached/mock data.
             </p>
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          <div className="bg-card rounded-2xl p-6 shadow-sm border-l-4 border-status-stable">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-muted-foreground text-sm font-medium">
-                  Stable Patients
-                </p>
-                <p className="text-3xl font-bold text-status-stable">
-                  {stableCount}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-status-stable/10 rounded-xl flex items-center justify-center">
-                <span className="text-2xl text-status-stable">✓</span>
-              </div>
-            </div>
-          </div>
-          <div className="bg-card rounded-2xl p-6 shadow-sm border-l-4 border-status-critical">
-            <div className="flex justify-between items-center">
-              <div>
-                <p className="text-muted-foreground text-sm font-medium">
-                  Critical Cases
-                </p>
-                <p className="text-3xl font-bold text-status-critical">
-                  {criticalCount}
-                </p>
-              </div>
-              <div className="w-12 h-12 bg-status-critical/10 rounded-xl flex items-center justify-center animate-pulse">
-                <span className="text-2xl text-status-critical">!</span>
+        <div className={`grid grid-cols-1 ${
+          (stableCount > 0 && criticalCount > 0) ? 'md:grid-cols-3' : 
+          (stableCount > 0 || criticalCount > 0) ? 'md:grid-cols-2' : 'md:grid-cols-1'
+        } gap-4 mb-8`}>
+          {stableCount > 0 && (
+            <div className="bg-card rounded-2xl p-6 shadow-sm border-l-4 border-status-stable">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-muted-foreground text-sm font-medium">Stable Patients</p>
+                  <p className="text-3xl font-bold text-status-stable">{stableCount}</p>
+                </div>
+                <div className="w-12 h-12 bg-status-stable/10 rounded-xl flex items-center justify-center">
+                  <span className="text-2xl text-status-stable">✓</span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
+          {criticalCount > 0 && (
+            <div className="bg-card rounded-2xl p-6 shadow-sm border-l-4 border-status-critical">
+              <div className="flex justify-between items-center">
+                <div>
+                  <p className="text-muted-foreground text-sm font-medium">Critical Cases</p>
+                  <p className="text-3xl font-bold text-status-critical">{criticalCount}</p>
+                </div>
+                <div className="w-12 h-12 bg-status-critical/10 rounded-xl flex items-center justify-center animate-pulse">
+                  <span className="text-2xl text-status-critical">!</span>
+                </div>
+              </div>
+            </div>
+          )}
           <div className="bg-card rounded-2xl p-6 shadow-sm border-l-4 border-status-needs-care">
             <div className="flex justify-between items-center">
               <div>
-                <p className="text-muted-foreground text-sm font-medium">
-                  Needs Care
-                </p>
-                <p className="text-3xl font-bold text-status-needs-care">
-                  {needsCareCount}
-                </p>
+                <p className="text-muted-foreground text-sm font-medium">Needs Care</p>
+                <p className="text-3xl font-bold text-status-needs-care">{needsCareCount}</p>
               </div>
               <div className="w-12 h-12 bg-status-needs-care/10 rounded-xl flex items-center justify-center">
                 <span className="text-2xl text-status-needs-care">⚠</span>
@@ -173,26 +165,32 @@ export default function NurseDashboard() {
               />
             </div>
             <div className="flex gap-2 flex-wrap items-center">
-              {["all", "stable", "critical", "needs_care"].map((status) => (
-                <button
-                  key={status}
-                  onClick={() => setSelectedStatus(status)}
-                  className={`px-6 py-2.5 rounded-2xl font-semibold transition-all duration-200 ${
-                    selectedStatus === status
-                      ? status === "all"
-                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                        : `bg-status-${status} text-white shadow-lg shadow-status-${status}/20`
-                      : "bg-secondary text-foreground hover:bg-secondary/80"
-                  }`}
-                >
-                  {status === "needs_care"
-                    ? "Needs Care"
-                    : status.charAt(0).toUpperCase() + status.slice(1)}
-                </button>
-              ))}
+              {['all', 'stable', 'critical', 'needs_care']
+                .filter((status) => {
+                  if (status === 'stable') return stableCount > 0;
+                  if (status === 'critical') return criticalCount > 0;
+                  return true;
+                })
+                .map((status) => (
+                  <button
+                    key={status}
+                    onClick={() => setSelectedStatus(status)}
+                    className={`px-6 py-2.5 rounded-2xl font-semibold transition-all duration-200 ${
+                      selectedStatus === status
+                        ? status === 'all'
+                          ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+                          : `bg-status-${status} text-white shadow-lg shadow-status-${status}/20`
+                        : 'bg-secondary text-foreground hover:bg-secondary/80'
+                    }`}
+                  >
+                    {status === 'needs_care'
+                      ? 'Needs Care'
+                      : status.charAt(0).toUpperCase() + status.slice(1)}
+                  </button>
+                ))}
               <button
                 onClick={() => refetch()}
-                className={`p-3 rounded-2xl bg-secondary hover:bg-secondary/80 transition-all ${isFetching ? "animate-spin" : ""}`}
+                className={`p-3 rounded-2xl bg-secondary hover:bg-secondary/80 transition-all ${isFetching ? 'animate-spin' : ''}`}
                 title="Refresh data"
               >
                 <RefreshCw size={20} />
@@ -206,9 +204,7 @@ export default function NurseDashboard() {
             <div className="inline-block">
               <div className="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin" />
             </div>
-            <p className="text-muted-foreground mt-4 font-medium">
-              Loading patients...
-            </p>
+            <p className="text-muted-foreground mt-4 font-medium">Loading patients...</p>
           </div>
         ) : filteredPatients.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

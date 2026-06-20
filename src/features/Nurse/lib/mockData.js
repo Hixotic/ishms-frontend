@@ -20,7 +20,7 @@ export const mockPatients = [
     name: 'Ahmed Mohammed',
     age: 65,
     gender: 'M',
-    status: 'stable',
+    status: 'needs_care',
     roomNumber: '101',
     lastVitals: {
       temperature: 36.8,
@@ -65,7 +65,7 @@ export const mockPatients = [
     name: 'Fatima Ali',
     age: 58,
     gender: 'F',
-    status: 'critical',
+    status: 'unknown',
     roomNumber: '205',
     lastVitals: {
       temperature: 38.5,
@@ -155,7 +155,7 @@ export const mockPatients = [
     name: 'Layla Ibrahim',
     age: 45,
     gender: 'F',
-    status: 'stable',
+    status: 'unknown',
     roomNumber: '108',
     lastVitals: {
       temperature: 36.9,
@@ -191,7 +191,7 @@ export const mockPatients = [
     name: 'Omar Khalil',
     age: 55,
     gender: 'M',
-    status: 'critical',
+    status: 'needs_care',
     roomNumber: '210',
     lastVitals: {
       temperature: 39.2,

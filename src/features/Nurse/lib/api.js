@@ -1,8 +1,11 @@
 import axios from 'axios';
 
 // 1. Define the API Configuration
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ishms-api-2026-gedyf5g5bgbfb2dt.italynorth-01.azurewebsites.net/';
-const LOGIN_ENDPOINT = `${API_BASE_URL}/Auth/login`;
+const envBase = import.meta.env.VITE_API_BASE_URL;
+const API_BASE_URL = envBase && envBase.trim() !== ''
+  ? envBase.replace(/\/$/, '')
+  : (typeof window !== 'undefined' ? window.location.origin : '');
+const LOGIN_ENDPOINT = `${API_BASE_URL}/api/Auth/login`;
 
 // Local server API for persistent vitals storage (shared across all users)
 const LOCAL_API_BASE_URL = import.meta.env.VITE_LOCAL_API_URL || '/api';
@@ -28,7 +31,7 @@ async function loginUser(email, password) {
         'Accept': 'application/json'
       },
       body: JSON.stringify(loginData)
-    }); 
+    });
 
     // 3. Handle the Response
     if (!response.ok) {
@@ -42,11 +45,11 @@ async function loginUser(email, password) {
     // 4. Save Status to LocalStorage
     // We store an isLoggedIn flag, the token (if returned), and the timestamp
     localStorage.setItem('isLoggedIn', 'true');
-    
+
     if (data.token) {
-      localStorage.setItem('authToken', data.token); 
+      localStorage.setItem('authToken', data.token);
     }
-    
+
     // Optional: Save user details if your API returns them
     if (data.user) {
       localStorage.setItem('userData', JSON.stringify(data.user));
@@ -57,11 +60,11 @@ async function loginUser(email, password) {
 
   } catch (error) {
     console.error('Login Error:', error.message);
-    
+
     // Make sure to clean up or set status to false if login fails
     localStorage.setItem('isLoggedIn', 'false');
     localStorage.removeItem('authToken');
-    
+
     return { success: false, error: error.message };
   }
 }
@@ -159,11 +162,16 @@ const getLocalVitalsData = async (patientId) => {
 
 export const patientApi = {
   getAllPatients: async () => {
-    const response = await api.get('/Patient');
+    const response = await api.get('/api/Patient');
     const patients = response.data || [];
     const localVitalsByPatientId = await getAllLocalVitals();
 
     return patients.map((patientData) => {
+      // Map activeMedications to medications if medications is not present
+      if (patientData && patientData.activeMedications && !patientData.medications) {
+        patientData.medications = patientData.activeMedications;
+      }
+
       const localVitals = localVitalsByPatientId?.[patientData.id] || null;
       if (localVitals) {
         const mergedVitals = { ...(patientData.lastVitals || patientData.vitals || {}), ...localVitals };
@@ -179,15 +187,20 @@ export const patientApi = {
   },
   getPatientById: async (id) => {
     try {
-      const response = await api.get(`/Patient/${id}`);
+      const response = await api.get(`/api/Patient/${id}`);
       let patientData = response.data;
-      
+
+      // Map activeMedications to medications if medications is not present
+      if (patientData && patientData.activeMedications && !patientData.medications) {
+        patientData.medications = patientData.activeMedications;
+      }
+
       // Merge with local patient data (background from vitals entry)
       const localPatientData = await getLocalPatientData(id);
       if (localPatientData) {
         patientData = { ...patientData, ...localPatientData };
       }
-      
+
       // Merge with local vitals data
       const localVitals = await getLocalVitalsData(id);
       if (localVitals) {
@@ -196,22 +209,22 @@ export const patientApi = {
         patientData.vitals = mergedVitals;
         patientData.vitalSigns = [mergedVitals, ...(patientData.vitalSigns || [])];
       }
-      
+
       // Merge with session localStorage data as fallback
       const sessionPatients = JSON.parse(localStorage.getItem('session_patients') || '{}');
       if (sessionPatients[id]) {
         patientData = { ...patientData, ...sessionPatients[id] };
       }
-      
+
       return patientData;
     } catch (error) {
       console.warn(`Error fetching patient ${id}, checking local storage:`, error);
-      
+
       // Try to get from local sources if API fails
       const localPatientData = await getLocalPatientData(id);
       const localVitals = await getLocalVitalsData(id);
       const sessionPatients = JSON.parse(localStorage.getItem('session_patients') || '{}');
-      
+
       let fallbackData = { id, ...sessionPatients[id] };
       if (localPatientData) fallbackData = { ...fallbackData, ...localPatientData };
       if (localVitals) {
@@ -219,30 +232,34 @@ export const patientApi = {
         fallbackData.vitals = localVitals;
         fallbackData.vitalSigns = [localVitals];
       }
-      
+
       if (Object.keys(fallbackData).length > 1) {
+        // Map activeMedications to medications in fallback as well
+        if (fallbackData.activeMedications && !fallbackData.medications) {
+          fallbackData.medications = fallbackData.activeMedications;
+        }
         return fallbackData;
       }
       throw error;
     }
   },
   getPatientsByDepartment: async (departmentId) => {
-    const response = await api.get(`/Patient/department/${departmentId}`);
+    const response = await api.get(`/api/Patient/department/${departmentId}`);
     return response.data;
   },
 };
 
 export const alertApi = {
   getAlertsByRole: async (role = 'Nurse') => {
-    const response = await api.get(`/Alert/role/${role}`);
+    const response = await api.get(`/api/Alert/role/${role}`);
     return response.data;
   },
   getAlertsByUser: async (userId) => {
-    const response = await api.get(`/Alert/user/${userId}`);
+    const response = await api.get(`/api/Alert/user/${userId}`);
     return response.data;
   },
   markAsRead: async (alertId) => {
-    const response = await api.post(`/Alert/read/${alertId}`);
+    const response = await api.post(`/api/Alert/read/${alertId}`);
     return response.data;
   },
 };
@@ -298,11 +315,27 @@ export const vitalSignsApi = {
   getLatestVitals: async (patientId) => {
     // Check local server first for persistent updates
     const local = await getLocalVitals(patientId);
-    
+
     try {
-      const response = await api.get(`/VitalSigns/latest/${patientId}`);
-      const apiData = response.data;
-      
+      // Get patient details which returns vitalSigns list
+      const response = await api.get(`/api/Patient/${patientId}`);
+      const patientData = response.data;
+
+      let apiData = null;
+      if (patientData) {
+        if (Array.isArray(patientData.vitalSigns) && patientData.vitalSigns.length > 0) {
+          apiData = patientData.vitalSigns[0];
+        } else if (patientData.latestVitalSign) {
+          apiData = Array.isArray(patientData.latestVitalSign)
+            ? patientData.latestVitalSign[0]
+            : patientData.latestVitalSign;
+        } else if (patientData.lastVitals) {
+          apiData = patientData.lastVitals;
+        } else if (patientData.vitals) {
+          apiData = patientData.vitals;
+        }
+      }
+
       // If we have local data, check if it's newer or should override
       if (local && apiData) {
         // Simple merge: if local exists, it might be the very latest update from this session
@@ -321,7 +354,7 @@ export const vitalSignsApi = {
   addVitalSigns: async (vitalData) => {
     // Save to local server immediately for persistent storage
     await saveLocalVitals(vitalData.patientId, vitalData);
-    
+
     // Also update the patient's background in local server for ISBAR and Care Report
     if (vitalData.background && vitalData.patientId) {
       try {
@@ -339,13 +372,34 @@ export const vitalSignsApi = {
         };
         localStorage.setItem('session_patients', JSON.stringify(sessionPatients));
       } catch (e) { console.error('Error saving session patient background', e); }
+
+      // Also save patient background to real server via updatePatientNurse endpoint
+      try {
+        await api.put(`/api/Patient/${vitalData.patientId}/nurse`, {
+          patientId: parseInt(vitalData.patientId),
+          background: vitalData.background
+        });
+      } catch (err) {
+        console.warn('Real API updatePatientNurse failed:', err);
+      }
     }
-    
+
     try {
-      const response = await api.post('/VitalSigns', vitalData);
+      // Build clean payload according to CreateVitalDto (additionalProperties: false)
+      const apiPayload = {
+        patientId: parseInt(vitalData.patientId),
+        heartRate: vitalData.heartRate,
+        oxygenLevel: vitalData.oxygenLevel,
+        temperature: vitalData.temperature,
+        systolicPressure: vitalData.systolicPressure,
+        diastolicPressure: vitalData.diastolicPressure,
+        respirationRate: vitalData.respirationRate,
+      };
+
+      const response = await api.post('/api/Patient/vital', apiPayload);
       return response.data;
     } catch (err) {
-      console.warn('API addVitalSigns failed, but saved to local server');
+      console.warn('API addVitalSigns failed, but saved to local server:', err);
       return { success: true, local: true };
     }
   },
@@ -354,13 +408,13 @@ export const vitalSignsApi = {
 export const medicalReportApi = {
   getPatientReports: async (patientId) => {
     try {
-      const response = await api.get(`/MedicalReport/patient/${patientId}`);
+      const response = await api.get(`/api/MedicalReport/patient/${patientId}`);
       const apiReports = Array.isArray(response.data) ? response.data : [];
-      
+
       // Merge with local session reports
       const localData = JSON.parse(localStorage.getItem('session_reports') || '{}');
       const localReports = localData[patientId] || [];
-      
+
       return [...localReports, ...apiReports];
     } catch (err) {
       console.warn('MedicalReport API failed, using local session reports');
@@ -370,8 +424,8 @@ export const medicalReportApi = {
   },
   addReport: async (reportData) => {
     try {
-      const response = await api.post('/MedicalReport', reportData);
-      
+      const response = await api.post('/api/MedicalReport', reportData);
+
       // Save to local session cache for immediate UI update
       const localData = JSON.parse(localStorage.getItem('session_reports') || '{}');
       if (!localData[reportData.patientId]) localData[reportData.patientId] = [];
@@ -381,7 +435,7 @@ export const medicalReportApi = {
         createdAt: new Date().toISOString()
       });
       localStorage.setItem('session_reports', JSON.stringify(localData));
-      
+
       return response.data;
     } catch (err) {
       console.warn('API addReport failed, saving locally for session');
@@ -402,23 +456,41 @@ export const medicalReportApi = {
 export const medicationApi = {
   getPatientMedications: async (patientId) => {
     try {
-      const response = await api.get(`/Medication/patient/${patientId}`);
-      return Array.isArray(response.data) ? response.data : [];
+      // First try to get it from patient details
+      const response = await api.get(`/api/Patient/${patientId}`);
+      const patientData = response.data;
+      if (patientData && (patientData.activeMedications || patientData.medications)) {
+        return patientData.activeMedications || patientData.medications;
+      }
+      return [];
     } catch (error) {
       console.warn(`Error fetching medications for patient ${patientId}:`, error);
       return [];
     }
   },
   administerMedication: async (administrationData) => {
-    const response = await api.post('/Medication/administer', administrationData);
-    return response.data;
+    try {
+      const response = await api.post('/api/Medication/administer', administrationData);
+      return response.data;
+    } catch (err) {
+      console.warn('API administerMedication failed, saving locally');
+      // Save locally to session administrations
+      const localAdmins = JSON.parse(localStorage.getItem('session_med_admins') || '[]');
+      localAdmins.push({
+        ...administrationData,
+        id: Date.now(),
+        administeredAt: new Date().toISOString()
+      });
+      localStorage.setItem('session_med_admins', JSON.stringify(localAdmins));
+      return { success: true, local: true };
+    }
   },
 };
 
 export const isbarApi = {
   getIsbarReport: async (patientId) => {
     try {
-      const response = await api.get(`/Patient/${patientId}/isbar`);
+      const response = await api.get(`/api/Patient/${patientId}/isbar`);
       return response.data;
     } catch (err) {
       console.warn('Azure ISBAR API failed, might need manual generation');
@@ -429,7 +501,7 @@ export const isbarApi = {
     // Attempting to use the new Azure backend if a POST endpoint exists, 
     // otherwise falling back to the specialized AI service
     try {
-      const response = await api.post('/Patient/isbar', isbarData);
+      const response = await api.post('/api/Patient/isbar', isbarData);
       return response.data;
     } catch (err) {
       console.warn('Azure POST ISBAR failed, falling back to AI service');
@@ -445,12 +517,12 @@ export const isbarApi = {
 
 export const authApi = {
   login: async (credentials) => {
-    const response = await api.post('/Auth/login', credentials);
+    const response = await api.post('/api/Auth/login', credentials);
     if (response.data.token) setAuthToken(response.data.token);
     return response.data;
   },
   register: async (userData) => {
-    const response = await api.post('/Auth/register', userData);
+    const response = await api.post('/api/Auth/register', userData);
     return response.data;
   },
   logout: () => setAuthToken(null),

@@ -85,9 +85,10 @@ export default function NursePatientDetails() {
     );
   }
 
-  // Combine medications from API and patient object
+  // Combine medications from API and patient object (activeMedications/medications)
   const medications = [
     ...(medicationsData || []),
+    ...(patient?.activeMedications || []),
     ...(patient?.medications || []),
   ].filter((v, i, a) => a.findIndex((t) => t.id === v.id) === i);
 
@@ -121,34 +122,83 @@ export default function NursePatientDetails() {
   const normalizeVitals = (vitalsRecord) => {
     if (!vitalsRecord || typeof vitalsRecord !== "object") return {};
 
+    // Handle bloodPressure as "120/80" string format
+    let systolic = vitalsRecord.SystolicPressure ?? vitalsRecord.systolicPressure ?? null;
+    let diastolic = vitalsRecord.DiastolicPressure ?? vitalsRecord.diastolicPressure ?? null;
+    if ((!systolic || !diastolic) && vitalsRecord.bloodPressure) {
+      const parts = String(vitalsRecord.bloodPressure).split("/");
+      if (parts.length === 2) {
+        systolic = systolic ?? parseFloat(parts[0]);
+        diastolic = diastolic ?? parseFloat(parts[1]);
+      }
+    }
+
     return {
       heartRate: vitalsRecord.HeartRate ?? vitalsRecord.heartRate ?? null,
       temperature: vitalsRecord.Temperature ?? vitalsRecord.temperature ?? null,
-      systolicPressure:
-        vitalsRecord.SystolicPressure ?? vitalsRecord.systolicPressure ?? null,
-      diastolicPressure:
-        vitalsRecord.DiastolicPressure ??
-        vitalsRecord.diastolicPressure ??
-        null,
-      oxygenLevel: vitalsRecord.OxygenLevel ?? vitalsRecord.oxygenLevel ?? null,
+      systolicPressure: systolic,
+      diastolicPressure: diastolic,
+      // Support both oxygenLevel and oxygenSaturation field names
+      oxygenLevel:
+        vitalsRecord.OxygenLevel ?? vitalsRecord.oxygenLevel ??
+        vitalsRecord.oxygenSaturation ?? null,
+      // Support both respirationRate and respiratoryRate field names
       respirationRate:
-        vitalsRecord.RespirationRate ??
-        vitalsRecord.respirationRate ??
-        vitalsRecord.respiratoryRate ??
-        null,
+        vitalsRecord.RespirationRate ?? vitalsRecord.respirationRate ??
+        vitalsRecord.respiratoryRate ?? null,
       recordedAt: vitalsRecord.RecordedAt ?? vitalsRecord.recordedAt ?? null,
     };
   };
 
-  // Get vitals from the most recent source
-  let patientVitals = {};
-  if (Array.isArray(patient.vitalSigns) && patient.vitalSigns.length > 0) {
-    patientVitals = normalizeVitals(patient.vitalSigns[0]);
-  } else if (patient.lastVitals) {
-    patientVitals = normalizeVitals(patient.lastVitals);
-  } else if (patient.vitals) {
-    patientVitals = normalizeVitals(patient.vitals);
-  }
+  // Get vitals from ALL possible sources, pick the most complete/recent
+  const extractVitals = () => {
+    const candidates = [];
+
+    // 1. vitalSigns array (could come from local merge)
+    if (Array.isArray(patient.vitalSigns) && patient.vitalSigns.length > 0) {
+      const sorted = [...patient.vitalSigns]
+        .filter(Boolean)
+        .sort((a, b) => {
+          const ta = new Date(a.RecordedAt || a.recordedAt || 0).getTime();
+          const tb = new Date(b.RecordedAt || b.recordedAt || 0).getTime();
+          return tb - ta; // newest first
+        });
+      candidates.push(normalizeVitals(sorted[0]));
+    }
+
+    // 2. latestVitalSign (object or array)
+    if (patient.latestVitalSign) {
+      if (Array.isArray(patient.latestVitalSign)) {
+        const sorted = [...patient.latestVitalSign]
+          .filter(Boolean)
+          .sort((a, b) => {
+            const ta = new Date(a.RecordedAt || a.recordedAt || 0).getTime();
+            const tb = new Date(b.RecordedAt || b.recordedAt || 0).getTime();
+            return tb - ta;
+          });
+        if (sorted.length > 0) candidates.push(normalizeVitals(sorted[0]));
+      } else {
+        candidates.push(normalizeVitals(patient.latestVitalSign));
+      }
+    }
+
+    // 3. lastVitals / vitals flat object
+    if (patient.lastVitals) candidates.push(normalizeVitals(patient.lastVitals));
+    if (patient.vitals) candidates.push(normalizeVitals(patient.vitals));
+
+    // Merge all candidates — later fields win only if earlier are null
+    const merged = {};
+    for (const c of candidates) {
+      for (const key of Object.keys(c)) {
+        if (merged[key] == null && c[key] != null) {
+          merged[key] = c[key];
+        }
+      }
+    }
+    return merged;
+  };
+
+  const patientVitals = extractVitals();
 
   const newsScore =
     patient.newsScore ?? calculateNewsScore(patientVitals) ?? null;
@@ -242,6 +292,105 @@ export default function NursePatientDetails() {
             )}
           </div>
         </div>
+
+        {/* Permanent Vital Signs Summary Card */}
+        {(() => {
+          const hasAnyVital =
+            patientVitals.heartRate ||
+            patientVitals.temperature ||
+            patientVitals.respirationRate ||
+            patientVitals.oxygenLevel ||
+            patientVitals.systolicPressure;
+
+          return (
+            <div className="bg-white border border-slate-100 rounded-2xl p-6 shadow-sm mb-8">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">
+                  Current Vital Signs
+                </h3>
+                {patientVitals.recordedAt && (
+                  <span className="text-xs text-slate-400">
+                    Last recorded: {formatDate(patientVitals.recordedAt)}
+                  </span>
+                )}
+              </div>
+
+              {hasAnyVital ? (
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                  <div className="p-4 bg-secondary/35 rounded-xl text-center border border-border/40">
+                    <Heart className="text-red-500 mx-auto mb-2" size={24} />
+                    <div className="text-2xl font-bold text-slate-800">
+                      {patientVitals.heartRate || "—"}
+                    </div>
+                    <div className="text-xs text-muted-foreground font-medium mt-1">
+                      Heart Rate (bpm)
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-secondary/35 rounded-xl text-center border border-border/40">
+                    <div className="text-2xl mb-2">🌡️</div>
+                    <div className="text-2xl font-bold text-slate-800">
+                      {patientVitals.temperature
+                        ? `${patientVitals.temperature}°C`
+                        : "—"}
+                    </div>
+                    <div className="text-xs text-muted-foreground font-medium mt-1">
+                      Temperature
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-secondary/35 rounded-xl text-center border border-border/40">
+                    <div className="text-2xl mb-2">🫁</div>
+                    <div className="text-2xl font-bold text-slate-800">
+                      {patientVitals.respirationRate || "—"}
+                    </div>
+                    <div className="text-xs text-muted-foreground font-medium mt-1">
+                      Resp. Rate (bpm)
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-secondary/35 rounded-xl text-center border border-border/40">
+                    <div className="text-2xl mb-2">💧</div>
+                    <div className="text-2xl font-bold text-slate-800">
+                      {patientVitals.systolicPressure && patientVitals.diastolicPressure
+                        ? `${patientVitals.systolicPressure}/${patientVitals.diastolicPressure}`
+                        : "—"}
+                    </div>
+                    <div className="text-xs text-muted-foreground font-medium mt-1">
+                      Blood Pressure (mmHg)
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-secondary/35 rounded-xl text-center border border-border/40 col-span-2 sm:col-span-1">
+                    <div className="text-2xl mb-2">🫀</div>
+                    <div className="text-2xl font-bold text-slate-800">
+                      {patientVitals.oxygenLevel
+                        ? `${patientVitals.oxygenLevel}%`
+                        : "—"}
+                    </div>
+                    <div className="text-xs text-muted-foreground font-medium mt-1">
+                      Oxygen Level
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 gap-4 border-2 border-dashed border-slate-200 rounded-xl">
+                  <span className="text-4xl">📋</span>
+                  <div className="text-center">
+                    <p className="text-slate-500 font-semibold">No vital signs recorded yet</p>
+                    <p className="text-slate-400 text-sm mt-1">Record the first vitals for this patient</p>
+                  </div>
+                  <button
+                    onClick={() => navigate(`/nurse/patient/${patient.id}/vitals`)}
+                    className="bg-[#3b82f6] text-white px-5 py-2.5 rounded-full text-sm font-bold shadow-md hover:bg-blue-600 transition-all flex items-center gap-1.5"
+                  >
+                    <Plus size={16} strokeWidth={3} /> Record Vitals Now
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         <div className="bg-card rounded-lg shadow-sm overflow-hidden">
           <div className="flex border-b border-border bg-white">

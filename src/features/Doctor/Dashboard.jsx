@@ -678,7 +678,7 @@ export default function DashboardPage() {
     );
 
   return (
-    <div className="min-h-screen bg-[#f4f7fa] px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
+    <div className="min-h-screen bg-slate-60 px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
       <div className="mx-auto w-full max-w-[1600px]">
         <div className="grid gap-2 sm:gap-4 grid-cols-2 lg:grid-cols-4 mb-6 sm:mb-8">
           <StatCard

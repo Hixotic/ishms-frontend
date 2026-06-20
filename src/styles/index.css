@@ -153,6 +153,20 @@
   --sidebar-ring:               #3b82f6;
 }
 
+/* Dark mode overrides — append to src/styles/index.css */
+.dark .bg-white { background-color: #1e293b; }      /* slate-800 */
+.dark .bg-slate-50,
+.dark .bg-gray-50 { background-color: #0f172a; }     /* slate-900 */
+.dark .bg-slate-100 { background-color: #334155; }   /* slate-700 */
+
+.dark .text-slate-900 { color: #f1f5f9; }            /* slate-100 */
+.dark .text-slate-800 { color: #e2e8f0; }            /* slate-200 */
+.dark .text-slate-500 { color: #94a3b8; }            /* slate-400 */
+.dark .text-slate-400 { color: #64748b; }             /* slate-500 */
+
+.dark .border-slate-200,
+.dark .border-slate-100 { border-color: #334155; }   /* slate-700 */
+
 /* ─── Base reset ────────────────────────────────────────────────────────────── */
 *, *::before, *::after {
   box-sizing: border-box;

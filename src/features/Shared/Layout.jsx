@@ -21,7 +21,10 @@ import {
   ChartBar,
   BarChart3,
   ChevronRight,
+  Sun,
+  Moon,
 } from "lucide-react";
+import { useTheme } from "../Shared/ThemeContext";
 import { useAuth } from "../Auth/AuthProvider";
 import PatientDetailsModal from "../Reception/components/PatientDetailsModal";
 import { useData } from "./IContext";
@@ -48,6 +51,7 @@ export default function MainLayout() {
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [showPatientModal, setShowPatientModal] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const { theme, toggleTheme } = useTheme();
   const headerRef = useRef(null);
   const role = auth.user?.role?.toLowerCase();
   useEffect(() => {
@@ -197,7 +201,7 @@ export default function MainLayout() {
             </div>
           ))}
         </nav>
-        <div className="p-4 border-t border-slate-100 bg-slate-50/50">
+        <div className="p-4 border-t border-slate-100 bg-slate-100">
           <div
             className={`flex items-center gap-3 p-2 rounded-xl transition-all ${sidebarOpen ? "bg-white shadow-sm border border-slate-100" : "justify-center"}`}
           >
@@ -227,7 +231,7 @@ export default function MainLayout() {
       <main className="flex-1 flex flex-col min-w-0 relative">
         <header
           ref={headerRef}
-          className="h-16 bg-white/80 backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 md:px-10 sticky top-0 z-30"
+          className="h-16 bg-white backdrop-blur-md border-b border-slate-200 flex items-center justify-between px-6 md:px-10 sticky top-0 z-30"
         >
           <div className="flex items-center gap-4">
             {isMobile && (
@@ -316,6 +320,28 @@ export default function MainLayout() {
             )}
           </div>
           <div className="flex items-center gap-3">
+            {/*<button
+              onClick={toggleTheme}
+              aria-label="Toggle theme"
+              className="relative w-10 h-10 rounded-2xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-all duration-300 hover:scale-105 active:scale-90 overflow-hidden"
+            >
+              <Sun
+                size={18}
+                className={`absolute transition-all duration-500 text-amber-500 ${
+                  theme === "light"
+                    ? "rotate-0 scale-100 opacity-100"
+                    : "rotate-90 scale-0 opacity-0"
+                }`}
+              />
+              <Moon
+                size={18}
+                className={`absolute transition-all duration-500 text-indigo-400 ${
+                  theme === "dark"
+                    ? "rotate-0 scale-100 opacity-100"
+                    : "-rotate-90 scale-0 opacity-0"
+                }`}
+              />
+            </button>*/}
             <SignalRNotifications
               headerRef={headerRef}
               onViewAll={() => navigate("/AlertsPage")}

@@ -207,10 +207,10 @@ export default function AuthPage({ defaultMode = "login" }) {
               </label>
 
               <input
-                type="email"
+                type="username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="user@ishms.com"
+                placeholder="Username"
                 className={inputClass}
                 required
               />

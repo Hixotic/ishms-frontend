@@ -203,7 +203,7 @@ export default function AuthPage({ defaultMode = "login" }) {
             {/* Email */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-                Email address
+                Username
               </label>
 
               <input

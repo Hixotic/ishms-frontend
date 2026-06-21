@@ -128,7 +128,7 @@ export default function AuthProvider({ children }) {
 
     try {
       // authLogin saves to localStorage internally
-      const { data } = await authLogin({ email, password });
+      const { data } = await authLogin({ username: email, password: password });
       applyAuth(data);
       return { user: normalizeUser(data), token: data?.token };
     } catch (error) {

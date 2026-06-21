@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { getTasksByRole, completeTask } from "../APIS/apiHandler";
 import { useAuth } from "../Auth/AuthProvider";
+import { useData } from "./IContext";
 
 // ─── ANIMATIONS ──────────────────────────────────────────────────
 
@@ -276,6 +277,7 @@ const SkeletonLoader = () => (
 // ─── MAIN PAGE ───────────────────────────────────────────────────
 
 export default function TasksPage() {
+  const { refreshData } = useData();
   const navigate = useNavigate();
   const auth = useAuth();
   const role = auth.user?.role || "doctor";
@@ -324,6 +326,7 @@ export default function TasksPage() {
       console.error("Failed to mark task as done:", error);
     } finally {
       setCompletingTasks((prev) => ({ ...prev, [id]: false }));
+      await refreshData?.();
     }
   };
 

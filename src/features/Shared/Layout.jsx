@@ -8,7 +8,6 @@ import React, {
 import { Outlet, useLocation, useNavigate, Link } from "react-router-dom";
 import {
   LayoutDashboard,
-  Users,
   ClipboardList,
   LogOut,
   Menu,
@@ -18,8 +17,6 @@ import {
   LayoutGrid,
   DoorOpen,
   AlertCircle,
-  ChartBar,
-  BarChart3,
   ChevronRight,
   Sun,
   Moon,
@@ -30,11 +27,14 @@ import PatientDetailsModal from "../Reception/components/PatientDetailsModal";
 import { useData } from "./IContext";
 import { formatPatientId } from "../APIS/Handler";
 import SignalRNotifications from "./SignalRNotifications";
+
 export const SearchContext = createContext();
+
 export default function MainLayout() {
   const location = useLocation();
   const navigate = useNavigate();
   const auth = useAuth();
+
   const {
     searchTerm,
     setSearchTerm,
@@ -46,14 +46,21 @@ export default function MainLayout() {
     isDoctor,
     isReceptionist,
   } = useData();
+
+  // State Management
   const [sidebarOpen, setSidebarOpen] = useState(window.innerWidth >= 1024);
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [showPatientModal, setShowPatientModal] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
   const { theme, toggleTheme } = useTheme();
   const headerRef = useRef(null);
-  const role = auth.user?.role?.toLowerCase();
+
+  // Safely handle potential undefined roles
+  const role = auth.user?.role?.toLowerCase() || "";
+
+  // Responsive Layout Handling
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
@@ -61,12 +68,21 @@ export default function MainLayout() {
       if (mobile) setSidebarOpen(false);
       else if (window.innerWidth >= 1024) setSidebarOpen(true);
     };
+
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  // Close sidebar on mobile route change
+  useEffect(() => {
+    if (isMobile) setSidebarOpen(false);
+  }, [location.pathname, isMobile]);
+
   const handlePatientSelect = (patient) => {
-    setSearchTerm("");
+    // Hide dropdown and clear search immediately
     setShowDropdown(false);
+    setSearchTerm("");
+
     if (isReceptionist) {
       setSelectedPatient(patient);
       setShowPatientModal(true);
@@ -74,10 +90,14 @@ export default function MainLayout() {
       navigate(`/patients/${patient.id}`);
     }
   };
-  const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
-  useEffect(() => {
-    if (isMobile) setSidebarOpen(false);
-  }, [location.pathname, isMobile]);
+
+  const toggleSidebar = () => setSidebarOpen((prev) => !prev);
+  const clearSearch = () => {
+    setSearchTerm("");
+    setShowDropdown(false);
+  };
+
+  // Memoized Navigation Items
   const navItems = useMemo(() => {
     const common = [
       {
@@ -87,6 +107,7 @@ export default function MainLayout() {
         section: "Overview",
       },
     ];
+
     const receptionItems = [
       {
         to: "/admission",
@@ -113,12 +134,13 @@ export default function MainLayout() {
         section: "Information",
       },
       {
-        to: "/executive",
-        label: "Analytics",
-        icon: <ChartBar size={18} />,
+        to: "/TasksPage",
+        label: "Tasks Panel",
+        icon: <ClipboardList size={18} />,
         section: "Information",
       },
     ];
+
     const doctorItems = [
       {
         to: "/TasksPage",
@@ -132,24 +154,25 @@ export default function MainLayout() {
         icon: <AlertCircle size={18} />,
         section: "Operations",
       },
-      {
-        to: "/executive",
-        label: "Analytics",
-        icon: <BarChart3 size={18} />,
-        section: "Information",
-      },
     ];
+
     return [...common, ...(isDoctor ? doctorItems : receptionItems)];
   }, [isDoctor]);
+
   const sections = [...new Set(navItems.map((item) => item.section))];
+
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-gray-50 font-sans text-slate-900">
+      {/* Mobile Overlay */}
       {isMobile && sidebarOpen && (
         <div
           className="fixed inset-0 z-40 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300"
           onClick={toggleSidebar}
+          aria-hidden="true"
         />
       )}
+
+      {/* Sidebar */}
       <aside
         className={`
         ${sidebarOpen ? "w-64" : "w-20"} 
@@ -167,7 +190,7 @@ export default function MainLayout() {
                 iSHMS
               </span>
               <span className="text-[9px] font-bold text-slate-400 mt-0.5 uppercase tracking-[0.2em]">
-                {role} Portal
+                {role || "Staff"} Portal
               </span>
             </div>
           )}
@@ -175,11 +198,13 @@ export default function MainLayout() {
             <button
               onClick={toggleSidebar}
               className="p-1.5 rounded-xl hover:bg-slate-50 text-slate-400 hover:text-blue-600 transition-all"
+              aria-label="Toggle Sidebar"
             >
               {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
             </button>
           )}
         </div>
+
         <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-6 custom-scrollbar">
           {sections.map((section) => (
             <div key={section} className="space-y-1">
@@ -201,12 +226,16 @@ export default function MainLayout() {
             </div>
           ))}
         </nav>
+
         <div className="p-4 border-t border-slate-100 bg-slate-100">
           <div
             className={`flex items-center gap-3 p-2 rounded-xl transition-all ${sidebarOpen ? "bg-white shadow-sm border border-slate-100" : "justify-center"}`}
           >
             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white font-bold shadow-blue-200 shadow-lg flex-shrink-0">
-              {auth.user?.fullName?.charAt(0) || role.charAt(0).toUpperCase()}
+              {/* Safe null check for initials */}
+              {auth.user?.fullName?.charAt(0) ||
+                role?.charAt(0)?.toUpperCase() ||
+                "U"}
             </div>
             {sidebarOpen && (
               <div className="min-w-0 flex-1">
@@ -214,7 +243,7 @@ export default function MainLayout() {
                   {auth.user?.fullName || "User"}
                 </p>
                 <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                  {role}
+                  {role || "Staff"}
                 </p>
               </div>
             )}
@@ -228,6 +257,8 @@ export default function MainLayout() {
           </button>
         </div>
       </aside>
+
+      {/* Main Content Area */}
       <main className="flex-1 flex flex-col min-w-0 relative">
         <header
           ref={headerRef}
@@ -247,6 +278,8 @@ export default function MainLayout() {
                 "Dashboard"}
             </h1>
           </div>
+
+          {/* Search Area */}
           <div className="flex-1 max-w-md mx-4 relative group">
             <div className="relative flex items-center">
               <Search
@@ -255,29 +288,43 @@ export default function MainLayout() {
               />
               <input
                 type="text"
-                placeholder="Search patients by name or patient Id..."
+                placeholder="Search patients by name or ID..."
                 value={searchTerm}
                 onChange={(e) => {
                   setSearchTerm(e.target.value);
                   setShowDropdown(true);
                 }}
                 onFocus={() => setShowDropdown(true)}
-                onBlur={() => setTimeout(() => setShowDropdown(false), 150)}
-                className="w-full pl-12 pr-4 py-2 bg-slate-100 border-transparent border-2 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-50 rounded-2xl text-sm font-semibold transition-all outline-none"
+                onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                className="w-full pl-12 pr-10 py-2 bg-slate-100 border-transparent border-2 focus:bg-white focus:border-blue-600 focus:ring-4 focus:ring-blue-50 rounded-2xl text-sm font-semibold transition-all outline-none"
               />
+              {searchTerm && (
+                <button
+                  onClick={clearSearch}
+                  className="absolute right-4 text-slate-400 hover:text-slate-600"
+                  aria-label="Clear search"
+                >
+                  <X size={16} />
+                </button>
+              )}
             </div>
+
             {showDropdown && searchTerm && (
               <div className="absolute top-full left-0 right-0 mt-3 bg-white border border-slate-200 rounded-2xl shadow-2xl z-[100] overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200">
-                {filteredPatients.length > 0 ? (
-                  <div className="p-2">
+                {filteredPatients?.length > 0 ? (
+                  <div className="p-2 max-h-96 overflow-y-auto custom-scrollbar">
                     {filteredPatients.map((p) => (
                       <button
                         key={p.id}
-                        onClick={() => handlePatientSelect(p)}
+                        // Use onMouseDown instead of onClick to bypass the onBlur timing conflict
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          handlePatientSelect(p);
+                        }}
                         className="w-full flex items-center gap-4 p-3 hover:bg-slate-50 rounded-xl transition-colors text-left group/item"
                       >
                         <div
-                          className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${
+                          className={`w-10 h-10 flex-shrink-0 rounded-full flex items-center justify-center text-white font-bold ${
                             p.status === "Critical"
                               ? "bg-red-500"
                               : p.status === "Unstable"
@@ -288,10 +335,10 @@ export default function MainLayout() {
                           {p.name?.charAt(0) || "P"}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-slate-800">
+                          <p className="text-sm font-bold text-slate-800 truncate">
                             {p.name || p.fullName}
                           </p>
-                          <p className="text-xs font-medium text-slate-500">
+                          <p className="text-xs font-medium text-slate-500 truncate">
                             {formatPatientId(p.id)} •{" "}
                             {p.bedId || p.bed || "No Bed"}
                           </p>
@@ -312,15 +359,16 @@ export default function MainLayout() {
                       No patients found
                     </p>
                     <p className="text-xs text-slate-500 mt-1">
-                      Try a different name or patient Id
+                      Try a different name or ID
                     </p>
                   </div>
                 )}
               </div>
             )}
           </div>
+
           <div className="flex items-center gap-3">
-            {/*<button
+            <button
               onClick={toggleTheme}
               aria-label="Toggle theme"
               className="relative w-10 h-10 rounded-2xl bg-slate-100 hover:bg-slate-200 flex items-center justify-center transition-all duration-300 hover:scale-105 active:scale-90 overflow-hidden"
@@ -341,13 +389,14 @@ export default function MainLayout() {
                     : "-rotate-90 scale-0 opacity-0"
                 }`}
               />
-            </button>*/}
+            </button>
             <SignalRNotifications
               headerRef={headerRef}
               onViewAll={() => navigate("/AlertsPage")}
             />
           </div>
         </header>
+
         <div className="flex-1 overflow-y-auto px-6 md:px-10 py-4 custom-scrollbar">
           <SearchContext.Provider
             value={{
@@ -363,16 +412,18 @@ export default function MainLayout() {
             <Outlet />
           </SearchContext.Provider>
         </div>
-        {showPatientModal && selectedPatient && (
-          <PatientDetailsModal
-            patient={selectedPatient}
-            onClose={() => setShowPatientModal(false)}
-          />
-        )}
+
+        {/* Updated Modal Rendering: Keeps component mounted to allow for exit animations */}
+        <PatientDetailsModal
+          patient={selectedPatient}
+          isOpen={showPatientModal}
+          onClose={() => setShowPatientModal(false)}
+        />
       </main>
     </div>
   );
 }
+
 function SidebarLink({ to, label, icon, collapsed, isActive }) {
   return (
     <Link

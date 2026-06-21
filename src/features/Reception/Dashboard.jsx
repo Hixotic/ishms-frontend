@@ -278,7 +278,7 @@ const DashboardOverview = ({
             <div className="space-y-1">
               {admittedPatients.length > 0 ? (
                 admittedPatients
-                  .slice(-5)
+                  .slice(-6)
                   .reverse()
                   .map((patient) => (
                     <AdmittedPatientRow
@@ -501,7 +501,7 @@ export default function ReceptionDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] p-6 sm:p-8 lg:p-10">
+    <div className="min-h-screen p-6 sm:p-8 lg:p-10">
       <div className="mx-auto max-w-[1600px]">{renderTabContent()}</div>
     </div>
   );

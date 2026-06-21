@@ -101,14 +101,18 @@ export default function AuthPage({ defaultMode = "login" }) {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-slate-50 to-cyan-50 p-6">
       {/* Background */}
       <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-blue-100 opacity-50 blur-3xl" />
-        <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-cyan-100 opacity-50 blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-64 rounded-full bg-blue-50 opacity-60 blur-2xl" />
+        {/* Soft neutral ambient layer */}
+        <div className="absolute inset-0 bg-slate-50 dark:bg-slate-950" />
+
+        {/* Very subtle noise-like depth (optional soft light patch) */}
+        <div className="absolute -top-32 -left-32 w-96 h-96 rounded-full bg-white opacity-40 blur-3xl dark:bg-slate-900 dark:opacity-30" />
+
+        <div className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full bg-white opacity-30 blur-3xl dark:bg-slate-900 dark:opacity-20" />
       </div>
 
       {/* Card */}
       <div
-        className="relative w-full max-w-md rounded-3xl bg-white shadow-2xl shadow-blue-100/60 border border-white/80 overflow-hidden"
+        className="relative w-full max-w-md rounded-3xl bg-white shadow-xl shadow-black/10 border border-slate-100 overflow-hidden"
         style={{
           opacity: mounted ? 1 : 0,
           transform: mounted
@@ -292,7 +296,7 @@ export default function AuthPage({ defaultMode = "login" }) {
                   : "Sign Up"}
             </button>
 
-            {/* Switch : disabled until further notice */}
+            {/* Switch : disabled until further notice 
 
             <p className="text-center text-sm text-slate-500 mt-1">
               {mode === "login"
@@ -306,7 +310,7 @@ export default function AuthPage({ defaultMode = "login" }) {
               >
                 {mode === "login" ? "Sign Up" : "Sign In"}
               </button>
-            </p>
+            </p>*/}
           </form>
         </div>
       </div>

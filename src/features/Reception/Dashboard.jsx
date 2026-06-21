@@ -397,7 +397,7 @@ const DashboardOverview = ({
                 className="w-full mt-6 py-4 rounded-2xl border border-slate-100 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:bg-slate-50 hover:text-blue-600 transition-all duration-300 flex items-center justify-center gap-2"
                 onClick={() => handleQuickAction("discharge")}
               >
-                Discharge Monitor <ArrowRight size={14} />
+                View All <ArrowRight size={14} />
               </button>
             </div>
           </div>

@@ -85,7 +85,7 @@ const SideNotification = ({ notification, onClose }) => {
       textAccentClass: "text-red-500",
       bgClass: "bg-[#fff5f5]",
       icon: <AlertTriangle size={22} className="text-red-500" />,
-      title: "Escalation Sent",
+      title: "Escalation Request",
       footer: "MET response ETA: ~4 min • Case ref: ESC-2049",
       steps: [
         {
@@ -115,7 +115,7 @@ const SideNotification = ({ notification, onClose }) => {
       textAccentClass: "text-blue-500",
       bgClass: "bg-[#f0f7ff]",
       icon: <Send size={22} className="text-blue-500" />,
-      title: "Imaging Request Sent",
+      title: "Imaging Request",
       footer: "Request ref: IMG-7731 • Priority: Urgent",
       steps: [
         {
@@ -203,7 +203,7 @@ const SideNotification = ({ notification, onClose }) => {
           onClick={onClose}
           className={`w-full py-[13px] ${cfg.accentClass} text-white border-none rounded-[10px] font-black cursor-pointer text-sm`}
         >
-          Done
+          Send
         </button>
       </div>
     </div>
@@ -243,61 +243,6 @@ const StopMedModal = ({ med, onConfirm, onCancel }) => (
     </div>
   </div>
 );
-
-// ─── CLINICAL NOTE MODAL ──────────────────────────────────────────
-const ClinicalNoteModal = ({ note, onSave, onCancel }) => {
-  const [text, setText] = useState(
-    note?.note || note?.text || note?.description || "",
-  );
-  return (
-    <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-[1300] p-4">
-      <div className="bg-white rounded-[20px] p-8 max-w-[600px] w-full shadow-[0_30px_80px_rgba(0,0,0,0.2)]">
-        <div className="flex items-center gap-3 mb-6">
-          <div className="w-11 h-11 rounded-xl bg-blue-50 flex items-center justify-center">
-            <PenLine size={20} className="text-blue-500" />
-          </div>
-          <div>
-            <h2 className="m-0 text-xl font-black text-slate-900">
-              {note ? "Edit Clinical Note" : "Add Clinical Note"}
-            </h2>
-            <div className="text-xs text-slate-400 mt-0.5">
-              {new Date().toLocaleDateString("en-GB", {
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              })}
-            </div>
-          </div>
-        </div>
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          rows={7}
-          placeholder="Enter clinical observations..."
-          className="w-full rounded-[14px] border border-slate-200 p-4 text-sm font-sans text-slate-900 resize-y outline-none leading-[1.7] box-border"
-          autoFocus
-        />
-        <div className="flex gap-2.5 mt-5">
-          <button
-            onClick={onCancel}
-            className="flex-1 p-[13px] rounded-[10px] border border-slate-200 bg-slate-50 font-extrabold cursor-pointer text-slate-800"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() =>
-              text.trim() &&
-              onSave({ text: text.trim(), date: new Date().toISOString() })
-            }
-            className="flex-[2] p-[13px] rounded-[10px] border-none bg-[#003366] text-white font-black cursor-pointer text-sm"
-          >
-            {note ? "Save Changes" : "Add Note"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // ─── NEW ENHANCED MODALS ─────────────────────────────────────────────────────
 
@@ -1131,51 +1076,6 @@ export default function PatientDetail() {
                     </div>
                   </div>
                 )}
-              </div>
-
-              {/* Documentation List */}
-              <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">
-                    Clinical Documentation
-                  </h3>
-                  <button
-                    onClick={() => setNoteModal("new")}
-                    className="px-5 py-2 bg-blue-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-950 transition flex items-center gap-2"
-                  >
-                    <PenLine size={14} /> Add Note
-                  </button>
-                </div>
-                <div className="space-y-4">
-                  {clinicalNotesList.length > 0 ? (
-                    clinicalNotesList.map((note, i) => (
-                      <div
-                        key={i}
-                        className="p-6 rounded-3xl bg-slate-50 border border-slate-100 relative group"
-                      >
-                        <div className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-3 flex items-center gap-2">
-                          <Clock size={12} />{" "}
-                          {new Date(note.date).toLocaleString()}
-                        </div>
-                        <p className="text-sm text-slate-700 font-medium leading-relaxed whitespace-pre-wrap">
-                          {formatNumbersInText(note.note)}
-                        </p>
-                        <button
-                          onClick={() =>
-                            setNoteModal({ noteObj: note, index: i })
-                          }
-                          className="absolute top-6 right-6 p-2 rounded-xl bg-white border border-slate-200 text-slate-400 opacity-0 group-hover:opacity-100 transition-all hover:text-blue-600"
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-10 text-slate-400 font-bold text-sm">
-                      No clinical notes recorded
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
           )}

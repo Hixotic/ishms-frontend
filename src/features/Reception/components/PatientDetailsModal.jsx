@@ -12,9 +12,11 @@ import {
   Thermometer,
   Wind,
   Droplets,
+  DoorOpen,
 } from "lucide-react";
 import { TransferModal } from "../../Shared/Assign"; // Adjust path if necessary
 import { getDepartments, assignBed } from "../../APIS/apiHandler";
+import { DischargeModal } from "./DischargePatient";
 
 function useDepartments() {
   const [departments, setDepartments] = useState([]);
@@ -80,6 +82,7 @@ const PatientDetailsModal = ({
   onTransferSuccess,
 }) => {
   const [showTransfer, setShowTransfer] = useState(false);
+  const [showDischarge, setShowDischarge] = useState(false);
   const { departments, occupiedMap, availableSet, loading, error, refresh } =
     useDepartments();
   if (!isOpen || !patient) return null;
@@ -301,6 +304,15 @@ const PatientDetailsModal = ({
 
             {/* Action Buttons grouped together */}
             <div className="flex items-center gap-3">
+              {/* In your Footer Action Buttons */}
+              {patient.flowStatus?.toLowerCase() === "stable" && (
+                <button
+                  onClick={() => setShowDischarge(true)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-5 py-2.5 text-sm font-bold text-emerald-600 transition-colors hover:bg-emerald-100 hover:text-emerald-700 shadow-sm"
+                >
+                  <DoorOpen size={16} /> Discharge
+                </button>
+              )}
               <button
                 type="button"
                 onClick={() => setShowTransfer(true)}
@@ -321,6 +333,16 @@ const PatientDetailsModal = ({
         </div>
       </div>
 
+      {/* Discharge Modal Implementation */}
+      <DischargeModal
+        patient={patient}
+        isOpen={showDischarge}
+        onClose={() => setShowDischarge(false)}
+        onSuccess={() => {
+          // Logic to update your UI or trigger notification
+          onClose(); // Close the main modal after successful discharge
+        }}
+      />
       {/* Embedded Transfer Modal */}
       {showTransfer && (
         <TransferModal

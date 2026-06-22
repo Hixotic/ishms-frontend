@@ -24,6 +24,8 @@ import {
   assignBed,
 } from "../../APIS/apiHandler";
 import { TransferModal } from "../../Shared/Assign";
+import PatientDetailsModal from "./PatientDetailsModal";
+import { useData } from "../../Shared/IContext";
 
 const BEDS_PER_ROOM = 5;
 const TOTAL_BEDS = 200;
@@ -534,6 +536,7 @@ export default function BedManagement() {
   const [search, setSearch] = useState("");
   const [view, setView] = useState("grid");
   const [modalPatient, setModalPatient] = useState(null);
+  const { patients } = useData(); // 👈 add this
 
   const { departments, occupiedMap, availableSet, loading, error, refresh } =
     useBedData();
@@ -544,6 +547,15 @@ export default function BedManagement() {
   const critical = Object.values(occupiedMap).filter(
     (p) => p.newsScore >= 7,
   ).length;
+
+  const handleOccupiedClick = useCallback(
+    (bedPatient) => {
+      const fullPatient =
+        patients.find((p) => p.bedId === bedPatient.bedId) || bedPatient;
+      setModalPatient(fullPatient);
+    },
+    [patients],
+  );
 
   const handleTransferSuccess = () => {
     setModalPatient(null);
@@ -708,7 +720,7 @@ export default function BedManagement() {
                 filter={filter}
                 search={search}
                 view={view}
-                onOccupiedClick={setModalPatient}
+                onOccupiedClick={handleOccupiedClick} // 👈 changed
                 disabled={!!modalPatient}
               />
             ))}
@@ -717,11 +729,11 @@ export default function BedManagement() {
       </div>
 
       {modalPatient && (
-        <TransferModal
+        <PatientDetailsModal
           patient={modalPatient}
-          departments={departments}
+          isOpen={!!modalPatient}
           onClose={() => setModalPatient(null)}
-          onSuccess={handleTransferSuccess}
+          onTransferSuccess={handleTransferSuccess}
         />
       )}
     </div>

@@ -204,6 +204,7 @@
 
 .dark .text-slate-900 { color:#f1f1f1 }
 .dark .text-slate-800 { color:#e5e5e5 }
+.dark .hover\:text-slate-800:hover { color:#e5e5e5 }
 .dark .text-slate-700 { color:#cccccc }
 
 .dark .text-slate-600 { color:#cccccc }

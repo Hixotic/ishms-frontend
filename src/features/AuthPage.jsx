@@ -203,14 +203,14 @@ export default function AuthPage({ defaultMode = "login" }) {
             {/* Email */}
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-                Email address
+                Username
               </label>
 
               <input
-                type="email"
+                type="username"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="user@ishms.com"
+                placeholder="Username"
                 className={inputClass}
                 required
               />

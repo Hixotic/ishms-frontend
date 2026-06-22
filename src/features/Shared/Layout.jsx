@@ -20,6 +20,7 @@ import {
   ChevronRight,
   Sun,
   Moon,
+  ChartBar,
 } from "lucide-react";
 import { useTheme } from "../Shared/ThemeContext";
 import { useAuth } from "../Auth/AuthProvider";
@@ -129,7 +130,7 @@ export default function MainLayout() {
       },
       {
         to: "/AlertsPage",
-        label: "Alerts",
+        label: "Alerts Panel",
         icon: <AlertCircle size={18} />,
         section: "Information",
       },
@@ -138,6 +139,14 @@ export default function MainLayout() {
         label: "Tasks Panel",
         icon: <ClipboardList size={18} />,
         section: "Information",
+      },
+      {
+        /* {
+        to: "/executive",
+        label: "Analytics",
+        icon: <ChartBar size={18} />,
+        section: "Analysis",
+      },*/
       },
     ];
 
@@ -153,6 +162,14 @@ export default function MainLayout() {
         label: "Alerts Panel",
         icon: <AlertCircle size={18} />,
         section: "Operations",
+      },
+      {
+        /* {
+        to: "/executive",
+        label: "Analytics",
+        icon: <ChartBar size={18} />,
+        section: "Analysis",
+      },*/
       },
     ];
 

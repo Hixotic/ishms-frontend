@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { Link, Outlet } from "react-router-dom";
 import { Settings, Menu, X, Bell, Search, User, LogOut } from "lucide-react";
-import { useTheme } from "../contexts/ThemeContext";
+import { useTheme } from "../../Shared/ThemeContext";
 import {
   Dialog,
   DialogContent,

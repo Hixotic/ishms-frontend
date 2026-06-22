@@ -27,7 +27,7 @@ import Alerts from "./features/Nurse/pages/Alerts";
 import ISBARPage from "./features/Nurse/pages/ISBARPage";
 import VitalSignsEntry from "./features/Nurse/pages/VitalSignsEntry";
 import NurseNavbar from "./features/Nurse/components/Navbar";
-import { ThemeProvider } from "./features/Nurse/contexts/ThemeContext";
+import { ThemeProvider } from "./features/Shared/ThemeContext";
 
 // Doctor
 import DoctorDashboard from "./features/Doctor/Dashboard";

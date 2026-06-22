@@ -74,62 +74,67 @@ const formatNumbersInText = (text) => {
 };
 
 // ─── SIDE NOTIFICATION PANEL ──────────────────────────────────────
+// Note: the colored header/accent (red for escalate, blue for imaging) is left
+// as an intentional brand color and does not flip with dark mode, the same way
+// status badges elsewhere in the app stay colored regardless of theme.
 const SideNotification = ({ notification, onClose }) => {
   if (!notification) return null;
   const configs = {
     escalate: {
-      accent: "#ef4444",
-      bg: "#fff5f5",
-      icon: <AlertTriangle size={22} color="#ef4444" />,
-      title: "Escalation Sent",
+      accentClass: "bg-red-500",
+      textAccentClass: "text-red-500",
+      bgClass: "bg-[#fff5f5]",
+      icon: <AlertTriangle size={22} className="text-red-500" />,
+      title: "Escalation Request",
       footer: "MET response ETA: ~4 min • Case ref: ESC-2049",
       steps: [
         {
-          icon: <AlertTriangle size={18} color="#ef4444" />,
+          icon: <AlertTriangle size={18} className="text-red-500" />,
           label: "Alert dispatched",
           sub: "Medical Emergency Team notified immediately",
         },
         {
-          icon: <UserRound size={18} color="#ef4444" />,
+          icon: <UserRound size={18} className="text-red-500" />,
           label: "On-call registrar paged",
           sub: "Response expected within 4 minutes",
         },
         {
-          icon: <Building2 size={18} color="#ef4444" />,
+          icon: <Building2 size={18} className="text-red-500" />,
           label: "ICU bed requested",
           sub: "Bed coordination team contacted",
         },
         {
-          icon: <ClipboardCheck size={18} color="#ef4444" />,
+          icon: <ClipboardCheck size={18} className="text-red-500" />,
           label: "Escalation logged",
           sub: "Timestamp recorded in patient record",
         },
       ],
     },
     imaging: {
-      accent: "#3b82f6",
-      bg: "#f0f7ff",
-      icon: <Send size={22} color="#3b82f6" />,
-      title: "Imaging Request Sent",
+      accentClass: "bg-blue-500",
+      textAccentClass: "text-blue-500",
+      bgClass: "bg-[#f0f7ff]",
+      icon: <Send size={22} className="text-blue-500" />,
+      title: "Imaging Request",
       footer: "Request ref: IMG-7731 • Priority: Urgent",
       steps: [
         {
-          icon: <Radio size={18} color="#3b82f6" />,
+          icon: <Radio size={18} className="text-blue-500" />,
           label: "Request submitted to Radiology",
           sub: "Received by duty radiologist",
         },
         {
-          icon: <Calendar size={18} color="#3b82f6" />,
+          icon: <Calendar size={18} className="text-blue-500" />,
           label: "Slot allocated",
           sub: "Estimated scan: within 2 hours",
         },
         {
-          icon: <Bell size={18} color="#3b82f6" />,
+          icon: <Bell size={18} className="text-blue-500" />,
           label: "Nurse notified",
           sub: "Patient prep instructions sent to ward",
         },
         {
-          icon: <FileText size={18} color="#3b82f6" />,
+          icon: <FileText size={18} className="text-blue-500" />,
           label: "Results auto-route",
           sub: "Will appear in patient record on completion",
         },
@@ -138,171 +143,67 @@ const SideNotification = ({ notification, onClose }) => {
   };
   const cfg = configs[notification];
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        right: 0,
-        height: "100vh",
-        width: "380px",
-        background: "white",
-        boxShadow: "-8px 0 40px rgba(0,0,0,0.12)",
-        zIndex: 1500,
-        display: "flex",
-        flexDirection: "column",
-        animation: "slideInRight 0.35s cubic-bezier(0.22,1,0.36,1)",
-      }}
-    >
+    <div className="fixed top-0 right-0 h-screen w-[380px] bg-white shadow-[-8px_0_40px_rgba(0,0,0,0.12)] z-[1500] flex flex-col animate-[slideInRight_0.35s_cubic-bezier(0.22,1,0.36,1)]">
       <style>{`@keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } } @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }`}</style>
-      <div
-        style={{
-          background: cfg.accent,
-          padding: "28px 24px 24px",
-          color: "white",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "flex-start",
-          }}
-        >
-          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-            <div
-              style={{
-                background: "rgba(255,255,255,0.2)",
-                borderRadius: "10px",
-                padding: "8px",
-                display: "flex",
-              }}
-            >
-              {React.cloneElement(cfg.icon, { color: "white" })}
+      <div className={`${cfg.accentClass} px-6 pt-7 pb-6 text-white`}>
+        <div className="flex justify-between items-start">
+          <div className="flex gap-3 items-center">
+            <div className="bg-white/20 rounded-[10px] p-2 flex">
+              {React.cloneElement(cfg.icon, { className: "text-white" })}
             </div>
             <div>
-              <div
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  opacity: 0.75,
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                }}
-              >
+              <div className="text-[11px] font-bold opacity-75 tracking-[0.08em] uppercase">
                 Action Confirmed
               </div>
-              <div
-                style={{ fontSize: "20px", fontWeight: 900, marginTop: "2px" }}
-              >
-                {cfg.title}
-              </div>
+              <div className="text-xl font-black mt-0.5">{cfg.title}</div>
             </div>
           </div>
           <button
             onClick={onClose}
-            style={{
-              background: "rgba(255,255,255,0.2)",
-              border: "none",
-              borderRadius: "8px",
-              padding: "6px",
-              cursor: "pointer",
-              display: "flex",
-              color: "white",
-            }}
+            className="bg-white/20 border-none rounded-lg p-1.5 cursor-pointer flex text-white"
           >
             <X size={16} />
           </button>
         </div>
-        <div
-          style={{
-            marginTop: "16px",
-            fontSize: "12px",
-            fontWeight: 600,
-            opacity: 0.8,
-            background: "rgba(0,0,0,0.15)",
-            padding: "8px 12px",
-            borderRadius: "8px",
-          }}
-        >
+        <div className="mt-4 text-xs font-semibold opacity-80 bg-black/15 px-3 py-2 rounded-lg">
           {cfg.footer}
         </div>
       </div>
-      <div style={{ flex: 1, overflowY: "auto", padding: "24px" }}>
-        <div
-          style={{
-            fontSize: "11px",
-            fontWeight: 800,
-            color: "#8898aa",
-            letterSpacing: "0.1em",
-            marginBottom: "16px",
-          }}
-        >
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="text-[11px] font-extrabold text-slate-400 tracking-[0.1em] mb-4">
           WHAT HAPPENS NEXT
         </div>
         {cfg.steps.map((step, i) => (
           <div
             key={i}
-            style={{
-              display: "flex",
-              gap: "14px",
-              marginBottom: "20px",
-              animation: `fadeUp 0.4s ease ${i * 0.08}s both`,
-            }}
+            className="flex gap-3.5 mb-5"
+            style={{ animation: `fadeUp 0.4s ease ${i * 0.08}s both` }}
           >
             <div
-              style={{
-                width: "38px",
-                height: "38px",
-                borderRadius: "10px",
-                background: cfg.bg,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "18px",
-                flexShrink: 0,
-              }}
+              className={`w-[38px] h-[38px] rounded-[10px] ${cfg.bgClass} flex items-center justify-center text-lg flex-shrink-0`}
             >
               {step.icon}
             </div>
             <div>
-              <div
-                style={{ fontSize: "13px", fontWeight: 800, color: "#1a2b3c" }}
-              >
+              <div className="text-[13px] font-extrabold text-slate-900">
                 {step.label}
               </div>
-              <div
-                style={{
-                  fontSize: "12px",
-                  color: "#8898aa",
-                  marginTop: "3px",
-                  lineHeight: 1.5,
-                }}
-              >
+              <div className="text-xs text-slate-400 mt-[3px] leading-relaxed">
                 {step.sub}
               </div>
             </div>
-            <div style={{ marginLeft: "auto", color: cfg.accent }}>
+            <div className={`ml-auto ${cfg.textAccentClass}`}>
               <CheckCircle size={16} />
             </div>
           </div>
         ))}
       </div>
-      <div style={{ padding: "16px 24px", borderTop: "1px solid #f0f4f8" }}>
+      <div className="px-6 py-4 border-t border-slate-100">
         <button
           onClick={onClose}
-          style={{
-            width: "100%",
-            padding: "13px",
-            background: cfg.accent,
-            color: "white",
-            border: "none",
-            borderRadius: "10px",
-            fontWeight: 900,
-            cursor: "pointer",
-            fontSize: "14px",
-          }}
+          className={`w-full py-[13px] ${cfg.accentClass} text-white border-none rounded-[10px] font-black cursor-pointer text-sm`}
         >
-          Done
+          Send
         </button>
       </div>
     </div>
@@ -311,85 +212,30 @@ const SideNotification = ({ notification, onClose }) => {
 
 // ─── STOP MED MODAL ───────────────────────────────────────────────
 const StopMedModal = ({ med, onConfirm, onCancel }) => (
-  <div
-    style={{
-      position: "fixed",
-      inset: 0,
-      background: "rgba(15,23,42,0.5)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      zIndex: 1300,
-    }}
-  >
-    <div
-      style={{
-        background: "white",
-        borderRadius: "20px",
-        padding: "32px",
-        maxWidth: "420px",
-        width: "90%",
-        boxShadow: "0 30px 80px rgba(0,0,0,0.2)",
-      }}
-    >
-      <div
-        style={{
-          width: "48px",
-          height: "48px",
-          borderRadius: "14px",
-          background: "#fef2f2",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          marginBottom: "20px",
-        }}
-      >
-        <StopCircle size={24} color="#ef4444" />
+  <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-[1300]">
+    <div className="bg-white rounded-[20px] p-8 max-w-[420px] w-[90%] shadow-[0_30px_80px_rgba(0,0,0,0.2)]">
+      <div className="w-12 h-12 rounded-[14px] bg-red-50 flex items-center justify-center mb-5">
+        <StopCircle size={24} className="text-red-500" />
       </div>
-      <h2
-        style={{
-          margin: "0 0 8px",
-          fontSize: "22px",
-          fontWeight: 900,
-          color: "#0f172a",
-        }}
-      >
+      <h2 className="m-0 mb-2 text-[22px] font-black text-slate-900">
         Stop Medication?
       </h2>
-      <p style={{ margin: "0 0 20px", color: "#64748b", lineHeight: 1.6 }}>
+      <p className="m-0 mb-5 text-slate-500 leading-relaxed">
         You are about to discontinue{" "}
-        <strong style={{ color: "#0f172a" }}>{med?.name}</strong> ({med?.dose} •{" "}
+        <strong className="text-slate-900">{med?.name}</strong> ({med?.dose} •{" "}
         {med?.route} • {med?.frequency}). This action will be logged in the
         patient record.
       </p>
-      <div style={{ display: "flex", gap: "10px" }}>
+      <div className="flex gap-2.5">
         <button
           onClick={onCancel}
-          style={{
-            flex: 1,
-            padding: "12px",
-            borderRadius: "10px",
-            border: "1px solid #e2e8f0",
-            background: "#f8fafc",
-            fontWeight: 800,
-            cursor: "pointer",
-            color: "#1a2b3c",
-          }}
+          className="flex-1 p-3 rounded-[10px] border border-slate-200 bg-slate-50 font-extrabold cursor-pointer text-slate-800"
         >
           Cancel
         </button>
         <button
           onClick={onConfirm}
-          style={{
-            flex: 1,
-            padding: "12px",
-            borderRadius: "10px",
-            border: "none",
-            background: "#ef4444",
-            color: "white",
-            fontWeight: 900,
-            cursor: "pointer",
-          }}
+          className="flex-1 p-3 rounded-[10px] border-none bg-red-500 text-white font-black cursor-pointer"
         >
           Confirm Stop
         </button>
@@ -397,138 +243,6 @@ const StopMedModal = ({ med, onConfirm, onCancel }) => (
     </div>
   </div>
 );
-
-// ─── CLINICAL NOTE MODAL ──────────────────────────────────────────
-const ClinicalNoteModal = ({ note, onSave, onCancel }) => {
-  const [text, setText] = useState(
-    note?.note || note?.text || note?.description || "",
-  );
-  return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(15,23,42,0.5)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        zIndex: 1300,
-        padding: "16px",
-      }}
-    >
-      <div
-        style={{
-          background: "white",
-          borderRadius: "20px",
-          padding: "32px",
-          maxWidth: "600px",
-          width: "100%",
-          boxShadow: "0 30px 80px rgba(0,0,0,0.2)",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            marginBottom: "24px",
-          }}
-        >
-          <div
-            style={{
-              width: "44px",
-              height: "44px",
-              borderRadius: "12px",
-              background: "#eff6ff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            <PenLine size={20} color="#3b82f6" />
-          </div>
-          <div>
-            <h2
-              style={{
-                margin: 0,
-                fontSize: "20px",
-                fontWeight: 900,
-                color: "#0f172a",
-              }}
-            >
-              {note ? "Edit Clinical Note" : "Add Clinical Note"}
-            </h2>
-            <div
-              style={{ fontSize: "12px", color: "#94a3b8", marginTop: "2px" }}
-            >
-              {new Date().toLocaleDateString("en-GB", {
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              })}
-            </div>
-          </div>
-        </div>
-        <textarea
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          rows={7}
-          placeholder="Enter clinical observations..."
-          style={{
-            width: "100%",
-            borderRadius: "14px",
-            border: "1px solid #e2e8f0",
-            padding: "16px",
-            fontSize: "14px",
-            fontFamily: "Cairo, sans-serif",
-            color: "#0f172a",
-            resize: "vertical",
-            outline: "none",
-            lineHeight: 1.7,
-            boxSizing: "border-box",
-          }}
-          autoFocus
-        />
-        <div style={{ display: "flex", gap: "10px", marginTop: "20px" }}>
-          <button
-            onClick={onCancel}
-            style={{
-              flex: 1,
-              padding: "13px",
-              borderRadius: "10px",
-              border: "1px solid #e2e8f0",
-              background: "#f8fafc",
-              fontWeight: 800,
-              cursor: "pointer",
-              color: "#1a2b3c",
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={() =>
-              text.trim() &&
-              onSave({ text: text.trim(), date: new Date().toISOString() })
-            }
-            style={{
-              flex: 2,
-              padding: "13px",
-              borderRadius: "10px",
-              border: "none",
-              background: "#003366",
-              color: "white",
-              fontWeight: 900,
-              cursor: "pointer",
-              fontSize: "14px",
-            }}
-          >
-            {note ? "Save Changes" : "Add Note"}
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 // ─── NEW ENHANCED MODALS ─────────────────────────────────────────────────────
 
@@ -816,6 +530,11 @@ export default function PatientDetail() {
       icon: Activity,
     },
   };
+  // Note: the vital card's active state uses a per-vital accent color (heart
+  // rate red, BP blue, temperature amber, etc.) computed at runtime, the same
+  // way the status badges elsewhere in the app stay colored in both themes —
+  // so that part intentionally stays inline. Only the plain white inactive
+  // state below is converted to a Tailwind class so it can flip in dark mode.
   const VitalCard = ({ type, active, onClick }) => {
     const cfg = vitalConfig[type];
 
@@ -827,12 +546,18 @@ export default function PatientDetail() {
     return (
       <div
         onClick={() => onClick(type)}
-        className="p-5 rounded-3xl border-2 cursor-pointer transition-all duration-500 ease-out hover:scale-[1.02]"
-        style={{
-          borderColor: active ? cfg.color : "#fff",
-          backgroundColor: active ? `${cfg.color}10` : "#fff",
-          boxShadow: active ? `0 10px 30px ${cfg.color}25` : "none",
-        }}
+        className={`p-5 rounded-3xl border-2 cursor-pointer transition-all duration-500 ease-out hover:scale-[1.02] ${
+          active ? "" : "bg-white border-white"
+        }`}
+        style={
+          active
+            ? {
+                borderColor: cfg.color,
+                backgroundColor: `${cfg.color}10`,
+                boxShadow: `0 10px 30px ${cfg.color}25`,
+              }
+            : undefined
+        }
       >
         <div className="flex items-start gap-4">
           <div
@@ -897,7 +622,7 @@ export default function PatientDetail() {
   );
 
   return (
-    <div className="bg-[#f8fafc] min-h-screen p-6 md:p-10 font-['Cairo',sans-serif]">
+    <div className="min-h-screen p-6 md:p-10 font-sans">
       {/* SIDE NOTIFICATION */}
       {sideNotification && (
         <SideNotification
@@ -1117,6 +842,9 @@ export default function PatientDetail() {
                     {vitalConfig[selectedVital].unit}
                   </div>
                 </div>
+                {/* Note: the chart below is rendered by recharts, which styles
+                    its internal SVG (grid lines, axis ticks, tooltip box) via
+                    direct props rather than className, so those stay as-is. */}
                 <div className="h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
@@ -1235,8 +963,8 @@ export default function PatientDetail() {
                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-6">
                   Current Treatment & Support
                 </h3>
-                <div className="p-6 rounded-3xl bg-blue-50/50 border border-blue-100">
-                  <p className="text-sm text-blue-900 font-bold leading-relaxed">
+                <div className="p-6 rounded-3xl bg-slate-50 border border-slate-100">
+                  <p className="text-sm text-slate-700 font-medium leading-relaxed">
                     {formatNumbersInText(
                       p.currentTreatment ||
                         "No current treatment details recorded.",
@@ -1348,51 +1076,6 @@ export default function PatientDetail() {
                     </div>
                   </div>
                 )}
-              </div>
-
-              {/* Documentation List */}
-              <div className="bg-white p-8 rounded-[32px] border border-slate-200 shadow-sm">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">
-                    Clinical Documentation
-                  </h3>
-                  <button
-                    onClick={() => setNoteModal("new")}
-                    className="px-5 py-2 bg-blue-900 text-white rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-950 transition flex items-center gap-2"
-                  >
-                    <PenLine size={14} /> Add Note
-                  </button>
-                </div>
-                <div className="space-y-4">
-                  {clinicalNotesList.length > 0 ? (
-                    clinicalNotesList.map((note, i) => (
-                      <div
-                        key={i}
-                        className="p-6 rounded-3xl bg-slate-50 border border-slate-100 relative group"
-                      >
-                        <div className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-3 flex items-center gap-2">
-                          <Clock size={12} />{" "}
-                          {new Date(note.date).toLocaleString()}
-                        </div>
-                        <p className="text-sm text-slate-700 font-medium leading-relaxed whitespace-pre-wrap">
-                          {formatNumbersInText(note.note)}
-                        </p>
-                        <button
-                          onClick={() =>
-                            setNoteModal({ noteObj: note, index: i })
-                          }
-                          className="absolute top-6 right-6 p-2 rounded-xl bg-white border border-slate-200 text-slate-400 opacity-0 group-hover:opacity-100 transition-all hover:text-blue-600"
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-10 text-slate-400 font-bold text-sm">
-                      No clinical notes recorded
-                    </div>
-                  )}
-                </div>
               </div>
             </div>
           )}

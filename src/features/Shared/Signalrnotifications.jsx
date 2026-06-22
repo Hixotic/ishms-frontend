@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import { createPortal } from "react-dom";
 import {
   Bell,
@@ -17,10 +23,11 @@ import {
   VolumeX,
 } from "lucide-react";
 import { useSignalRContext } from "../APIS/useSignalR";
-import { useData } from "./IContext";
+import { useNavigate } from "react-router-dom";
+import { useData } from "../Shared/IContext";
+import PatientDetailsModal from "../Reception/components/PatientDetailsModal";
 
-/* ─── Live ticking timeAgo ───────────────────────────────────────────────────
-   Returns a string that re-renders every second automatically.             */
+/* ─── Live ticking timeAgo ───────────────────────────────────────────────── */
 function useLiveTimeAgo(date) {
   const calc = (d) => {
     const seconds = Math.floor((Date.now() - new Date(d)) / 1000);
@@ -41,18 +48,6 @@ function useLiveTimeAgo(date) {
   return label;
 }
 
-/* Static timeAgo for places that don't need a hook (e.g. inside .reduce) */
-const timeAgoStatic = (date) => {
-  const seconds = Math.floor((Date.now() - new Date(date)) / 1000);
-  if (seconds < 60) return `${seconds}s ago`;
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return days < 7 ? `${days}d ago` : new Date(date).toLocaleDateString();
-};
-
 const formatDate = (date) => {
   const d = new Date(date);
   const today = new Date();
@@ -67,8 +62,7 @@ const formatDate = (date) => {
   });
 };
 
-/* ─── Sound system ───────────────────────────────────────────────────────────
-   Plays pre-loaded audio files for different severity levels.             */
+/* ─── Sound system ───────────────────────────────────────────────────────── */
 function useSoundSystem() {
   const [muted, setMuted] = useState(false);
   const ctxRef = useRef(null);
@@ -81,7 +75,6 @@ function useSoundSystem() {
     return ctxRef.current;
   }, []);
 
-  // Function to load an audio file
   const loadAudio = useCallback(
     async (url, name) => {
       try {
@@ -90,7 +83,6 @@ function useSoundSystem() {
         const arrayBuffer = await response.arrayBuffer();
         const audioBuffer = await ctx.decodeAudioData(arrayBuffer);
         audioBuffersRef.current[name] = audioBuffer;
-        console.log(`Audio file ${name} loaded successfully.`);
       } catch (error) {
         console.error(`Error loading audio file ${name} from ${url}:`, error);
       }
@@ -98,29 +90,21 @@ function useSoundSystem() {
     [getCtx],
   );
 
-  // Load all necessary audio files on component mount
   useEffect(() => {
-    // Replace with your actual audio file paths
     loadAudio("/sounds/notification.mp3", "critical");
     loadAudio("/sounds/notification.mp3", "warning");
     loadAudio("/sounds/notification.mp3", "info");
   }, [loadAudio]);
 
-  // Function to play a loaded audio buffer
   const playSound = useCallback(
     (name, volume = 1) => {
       if (muted) return;
       const audioBuffer = audioBuffersRef.current[name];
-      if (!audioBuffer) {
-        console.warn(`Audio buffer for ${name} not loaded.`);
-        return;
-      }
-
+      if (!audioBuffer) return;
       try {
         const ctx = getCtx();
         const source = ctx.createBufferSource();
         const gainNode = ctx.createGain();
-
         source.buffer = audioBuffer;
         source.connect(gainNode);
         gainNode.connect(ctx.destination);
@@ -133,30 +117,19 @@ function useSoundSystem() {
     [muted, getCtx],
   );
 
-  const playCritical = useCallback(() => {
-    playSound("critical", 0.6);
-  }, [playSound]);
-
-  const playWarning = useCallback(() => {
-    playSound("warning", 0.6);
-  }, [playSound]);
-
-  const playInfo = useCallback(() => {
-    playSound("info", 0.6);
-  }, [playSound]);
-
   const playForSeverity = useCallback(
     (severity) => {
       const s = severity?.toLowerCase();
-      if (s === "critical") playCritical();
-      else if (s === "warning") playWarning();
-      else playInfo();
+      if (s === "critical") playSound("critical", 0.6);
+      else if (s === "warning") playSound("warning", 0.6);
+      else playSound("info", 0.6);
     },
-    [playCritical, playWarning, playInfo],
+    [playSound],
   );
 
   return { muted, setMuted, playForSeverity };
 }
+
 /* ─── Severity config ────────────────────────────────────────────────────── */
 const getSev = (severity) => {
   const s = severity?.toLowerCase();
@@ -277,7 +250,7 @@ function MuteButton({ muted, onToggle }) {
   );
 }
 
-/* ─── LiveTime — ticking timestamp component ─────────────────────────────── */
+/* ─── LiveTime ───────────────────────────────────────────────────────────── */
 function LiveTime({ date }) {
   const label = useLiveTimeAgo(date);
   return (
@@ -289,7 +262,7 @@ function LiveTime({ date }) {
 }
 
 /* ─── Toast ──────────────────────────────────────────────────────────────── */
-function Toast({ event, onDismiss, isNew }) {
+function Toast({ event, onDismiss, isNew, onClick }) {
   const NotificationFloatTimer = 6000;
   const [phase, setPhase] = useState("enter");
   const sev = getSev(event.severity);
@@ -324,7 +297,8 @@ function Toast({ event, onDismiss, isNew }) {
   return (
     <div
       style={style}
-      className="w-[300px] bg-white border border-slate-200 rounded-xl overflow-hidden pointer-events-auto shadow-lg"
+      onClick={() => onClick?.(event.patientId)}
+      className="w-[300px] bg-white border border-slate-200 rounded-xl overflow-hidden pointer-events-auto shadow-lg cursor-pointer"
     >
       <div className="flex items-start gap-3 p-3">
         <div
@@ -359,7 +333,8 @@ function Toast({ event, onDismiss, isNew }) {
           </div>
         </div>
         <button
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             setPhase("exit");
             setTimeout(() => onDismiss(event.id), 280);
           }}
@@ -378,8 +353,8 @@ function Toast({ event, onDismiss, isNew }) {
   );
 }
 
-/* ─── ToastStack — bottom-right ──────────────────────────────────────────── */
-function ToastStack({ toasts, onDismiss, newMessageIds }) {
+/* ─── ToastStack ─────────────────────────────────────────────────────────── */
+function ToastStack({ toasts, onDismiss, newMessageIds, onViewPatient }) {
   return createPortal(
     <div className="fixed bottom-4 right-4 z-[9999] flex flex-col-reverse gap-2 items-end pointer-events-none">
       {toasts.map((e) => (
@@ -388,6 +363,7 @@ function ToastStack({ toasts, onDismiss, newMessageIds }) {
           event={e}
           onDismiss={onDismiss}
           isNew={newMessageIds.has(e.id)}
+          onClick={onViewPatient}
         />
       ))}
     </div>,
@@ -396,7 +372,7 @@ function ToastStack({ toasts, onDismiss, newMessageIds }) {
 }
 
 /* ─── NotifItem ──────────────────────────────────────────────────────────── */
-function NotifItem({ event, onDismiss, onRead, isNew, showDivider }) {
+function NotifItem({ event, onDismiss, onRead, isNew, showDivider, onClick }) {
   const sev = getSev(event.severity);
   const isRead = event.isRead || event.read;
   const isNormal =
@@ -413,7 +389,10 @@ function NotifItem({ event, onDismiss, onRead, isNew, showDivider }) {
   return (
     <>
       <div
-        onClick={() => !isRead && onRead(event.id)}
+        onClick={() => {
+          if (!isRead) onRead(event.id);
+          if (event.patientId) onClick?.(event.patientId);
+        }}
         className="group relative flex items-start gap-2.5 px-3 py-2.5 cursor-pointer hover:bg-slate-50 transition-colors duration-100"
       >
         <div
@@ -487,7 +466,6 @@ function NotificationTooltip({
   onClose,
   events,
   status,
-  unreadCount,
   dismissEvent,
   clearEvent,
   bellRef,
@@ -496,6 +474,7 @@ function NotificationTooltip({
   navBottom,
   muted,
   onToggleMute,
+  onViewPatient,
 }) {
   const ref = useRef(null);
 
@@ -550,7 +529,6 @@ function NotificationTooltip({
         }}
         className="bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden"
       >
-        {/* header */}
         <div className="flex items-center justify-between px-3 py-2.5 border-b border-slate-100">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-[13px] font-bold text-slate-900">
@@ -574,7 +552,6 @@ function NotificationTooltip({
           </div>
         </div>
 
-        {/* list */}
         <div className="max-h-[340px] overflow-y-auto">
           {events.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-10 text-center px-4">
@@ -604,6 +581,7 @@ function NotificationTooltip({
                     onDismiss={dismissEvent}
                     onRead={clearEvent}
                     isNew={newMessageIds.has(ev.id)}
+                    onClick={onViewPatient}
                     showDivider={idx < items.length - 1}
                   />
                 ))}
@@ -612,7 +590,6 @@ function NotificationTooltip({
           )}
         </div>
 
-        {/* footer */}
         {events.length > 0 && (
           <div className="flex items-center justify-between px-3 py-2 border-t border-slate-100 bg-slate-50/50">
             <span className="text-[10px] text-slate-400">
@@ -677,8 +654,9 @@ BellButton.displayName = "BellButton";
 export default function SignalRNotifications({ headerRef, onViewAll }) {
   const { status, events, unreadCount, clearEvent, dismissEvent } =
     useSignalRContext();
-  const { alerts } = useData();
+  const { alerts, isReceptionist, patients } = useData();
   const { muted, setMuted, playForSeverity } = useSoundSystem();
+  const navigate = useNavigate();
 
   const navBottom = useNavbarBottom(headerRef);
   const bellRef = useRef(null);
@@ -688,15 +666,37 @@ export default function SignalRNotifications({ headerRef, onViewAll }) {
   const [newMessageIds, setNewMessageIds] = useState(new Set());
   const prevLen = useRef(events.length);
 
-  const unique = Array.from(
-    new Map([...events, ...(alerts || [])].map((i) => [i.id, i])).values(),
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [showPatientModal, setShowPatientModal] = useState(false);
+
+  const unique = useMemo(() => {
+    return Array.from(
+      new Map([...events, ...(alerts || [])].map((i) => [i.id, i])).values(),
+    );
+  }, [events, alerts]);
+
+  const handleViewPatient = useCallback(
+    (patientId) => {
+      const patient = patients?.find((p) => p.id === patientId) ?? {
+        id: patientId,
+      };
+
+      setOpen(false);
+
+      if (isReceptionist) {
+        setSelectedPatient(patient);
+        setShowPatientModal(true);
+      } else {
+        navigate(`/patients/${patientId}`);
+      }
+    },
+    [patients, isReceptionist, navigate],
   );
 
   useEffect(() => {
     if (events.length > prevLen.current) {
       const newEvs = events.slice(0, events.length - prevLen.current);
 
-      // Play sound for the highest-severity new event
       const severityRank = { critical: 3, warning: 2, info: 1 };
       const topSev = newEvs.reduce((best, ev) => {
         return (severityRank[ev.severity?.toLowerCase()] ?? 1) >
@@ -746,10 +746,10 @@ export default function SignalRNotifications({ headerRef, onViewAll }) {
         onClose={() => setOpen(false)}
         events={unique}
         status={status}
-        unreadCount={unreadCount}
         dismissEvent={dismissEvent}
         clearEvent={clearEvent}
         bellRef={bellRef}
+        onViewPatient={handleViewPatient}
         newMessageIds={newMessageIds}
         onViewAll={onViewAll}
         navBottom={navBottom}
@@ -760,7 +760,16 @@ export default function SignalRNotifications({ headerRef, onViewAll }) {
         toasts={toastQueue}
         onDismiss={dismissToast}
         newMessageIds={newMessageIds}
+        onViewPatient={handleViewPatient}
       />
+      {createPortal(
+        <PatientDetailsModal
+          patient={selectedPatient}
+          isOpen={showPatientModal}
+          onClose={() => setShowPatientModal(false)}
+        />,
+        document.body,
+      )}
     </>
   );
 }

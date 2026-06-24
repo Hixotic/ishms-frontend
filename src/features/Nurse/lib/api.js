@@ -18,7 +18,7 @@ const LOCAL_API_BASE_URL = import.meta.env.VITE_LOCAL_API_URL || '/api';
 async function loginUser(email, password) {
   // Prepare the payload according to your schema
   const loginData = {
-    email: email,
+    username: email,
     password: password
   };
 

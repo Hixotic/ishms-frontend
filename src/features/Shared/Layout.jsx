@@ -164,12 +164,10 @@ export default function MainLayout() {
         section: "Operations",
       },
       {
-        /* {
         to: "/executive",
         label: "Analytics",
         icon: <ChartBar size={18} />,
         section: "Analysis",
-      },*/
       },
     ];
 

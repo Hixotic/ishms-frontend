@@ -70,7 +70,7 @@ async function loginUser(email, password) {
 }
 
 // --- Example Usage ---
-loginUser('nurse@ishms.net', 'Test@123');
+loginUser('emma.nr', 'Asd123456@');
 
 const api = axios.create({
   baseURL: API_BASE_URL,

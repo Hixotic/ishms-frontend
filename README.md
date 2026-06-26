@@ -113,4 +113,4 @@ npm start
 
 ## host 
 
-[vercel.app](https://vercel.com/)
+[vercel.app](https://vercel.com/).

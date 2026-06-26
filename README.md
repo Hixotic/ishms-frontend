@@ -110,3 +110,7 @@ npm start
 | `npm run lint` | Run ESLint |
 | `npm run preview` | Preview the production build locally |
 | `npm start` | Serve the production build with Express |
+
+## host 
+
+vercel.app
